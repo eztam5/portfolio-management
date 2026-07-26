@@ -6,12 +6,16 @@ import com.example.portfoliomanagement.persistence.InstrumentPriceRepository;
 import com.example.portfoliomanagement.persistence.InstrumentRepository;
 import com.example.portfoliomanagement.persistence.InstrumentList;
 import com.example.portfoliomanagement.persistence.InstrumentListRepository;
+import com.example.portfoliomanagement.persistence.PortfolioTransaction;
+import com.example.portfoliomanagement.persistence.PortfolioTransactionRepository;
 import com.example.portfoliomanagement.persistence.CashAccount;
 import com.example.portfoliomanagement.persistence.CashAccountRepository;
 import com.example.portfoliomanagement.persistence.SecurityAccount;
 import com.example.portfoliomanagement.persistence.SecurityAccountRepository;
+import com.example.portfoliomanagement.persistence.TransactionType;
 import com.example.portfoliomanagement.marketdata.HistoricalPriceProvider;
 import com.example.portfoliomanagement.marketdata.YahooFinanceHistoricalPriceProvider;
+import com.example.portfoliomanagement.service.TransactionService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.application.Platform;
@@ -27,6 +31,8 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ContextMenu;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
@@ -69,8 +75,10 @@ public class MainWindowController {
     private final InstrumentListRepository instrumentListRepository = new InstrumentListRepository();
     private final InstrumentRepository instrumentRepository = new InstrumentRepository();
     private final InstrumentPriceRepository instrumentPriceRepository = new InstrumentPriceRepository();
+    private final PortfolioTransactionRepository portfolioTransactionRepository = new PortfolioTransactionRepository();
     private final CashAccountRepository cashAccountRepository = new CashAccountRepository();
     private final SecurityAccountRepository securityAccountRepository = new SecurityAccountRepository();
+    private final TransactionService transactionService = new TransactionService();
     private final HistoricalPriceProvider historicalPriceProvider = new YahooFinanceHistoricalPriceProvider();
     private final ObservableList<InstrumentList> securitiesLists = FXCollections.observableArrayList();
     private final ToggleGroup securitiesMenuGroup = new ToggleGroup();
@@ -114,6 +122,15 @@ public class MainWindowController {
 
     @FXML
     private TableView<CashAccountRow> cashAccountsTable;
+
+    @FXML
+    private TableView<SecurityTransactionRow> securityTransactionsTable;
+
+    @FXML
+    private TableView<AccountTransactionRow> accountTransactionsTable;
+
+    @FXML
+    private TableView<SecurityAccountTransactionRow> securityAccountTransactionsTable;
 
     @FXML
     private VBox chartDetailSection;
@@ -167,6 +184,81 @@ public class MainWindowController {
     private TableColumn<CashAccountRow, String> cashAccountNoteColumn;
 
     @FXML
+    private TableColumn<SecurityTransactionRow, String> securityTransactionDateColumn;
+
+    @FXML
+    private TableColumn<SecurityTransactionRow, String> securityTransactionTypeColumn;
+
+    @FXML
+    private TableColumn<SecurityTransactionRow, String> securityTransactionSharesColumn;
+
+    @FXML
+    private TableColumn<SecurityTransactionRow, String> securityTransactionAmountColumn;
+
+    @FXML
+    private TableColumn<SecurityTransactionRow, String> securityTransactionCurrencyColumn;
+
+    @FXML
+    private TableColumn<SecurityTransactionRow, String> securityTransactionFeesColumn;
+
+    @FXML
+    private TableColumn<SecurityTransactionRow, String> securityTransactionTaxesColumn;
+
+    @FXML
+    private TableColumn<SecurityTransactionRow, String> securityTransactionNoteColumn;
+
+    @FXML
+    private TableColumn<AccountTransactionRow, String> accountTransactionDateColumn;
+
+    @FXML
+    private TableColumn<AccountTransactionRow, String> accountTransactionTypeColumn;
+
+    @FXML
+    private TableColumn<AccountTransactionRow, String> accountTransactionAmountColumn;
+
+    @FXML
+    private TableColumn<AccountTransactionRow, String> accountTransactionCurrencyColumn;
+
+    @FXML
+    private TableColumn<AccountTransactionRow, String> accountTransactionSourceColumn;
+
+    @FXML
+    private TableColumn<AccountTransactionRow, String> accountTransactionTargetColumn;
+
+    @FXML
+    private TableColumn<AccountTransactionRow, String> accountTransactionNoteColumn;
+
+    @FXML
+    private TableColumn<SecurityAccountTransactionRow, String> securityAccountTransactionDateColumn;
+
+    @FXML
+    private TableColumn<SecurityAccountTransactionRow, String> securityAccountTransactionTypeColumn;
+
+    @FXML
+    private TableColumn<SecurityAccountTransactionRow, String> securityAccountTransactionInstrumentColumn;
+
+    @FXML
+    private TableColumn<SecurityAccountTransactionRow, String> securityAccountTransactionSharesColumn;
+
+    @FXML
+    private TableColumn<SecurityAccountTransactionRow, String> securityAccountTransactionAmountColumn;
+
+    @FXML
+    private TableColumn<SecurityAccountTransactionRow, String> securityAccountTransactionCurrencyColumn;
+
+    @FXML
+    private TableColumn<SecurityAccountTransactionRow, String> securityAccountTransactionCashAccountColumn;
+
+    @FXML
+    private TableColumn<SecurityAccountTransactionRow, String> securityAccountTransactionFeesColumn;
+
+    @FXML
+    private TableColumn<SecurityAccountTransactionRow, String> securityAccountTransactionTaxesColumn;
+
+    @FXML
+    private TableColumn<SecurityAccountTransactionRow, String> securityAccountTransactionNoteColumn;
+
+    @FXML
     private void initialize() {
         allSecuritiesMenuItem.setToggleGroup(securitiesMenuGroup);
         securityAccountsMenuItem.setToggleGroup(securitiesMenuGroup);
@@ -175,6 +267,9 @@ public class MainWindowController {
         securitiesTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         securityAccountsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         cashAccountsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        securityTransactionsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        accountTransactionsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        securityAccountTransactionsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         nameColumn.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
         symbolColumn.setCellValueFactory(cellData -> cellData.getValue().symbolProperty());
@@ -187,12 +282,40 @@ public class MainWindowController {
         cashAccountCurrencyColumn.setCellValueFactory(cellData -> cellData.getValue().currencyProperty());
         cashAccountBalanceColumn.setCellValueFactory(cellData -> cellData.getValue().balanceProperty());
         cashAccountNoteColumn.setCellValueFactory(cellData -> cellData.getValue().noteProperty());
+        securityTransactionDateColumn.setCellValueFactory(cellData -> cellData.getValue().dateProperty());
+        securityTransactionTypeColumn.setCellValueFactory(cellData -> cellData.getValue().typeProperty());
+        securityTransactionSharesColumn.setCellValueFactory(cellData -> cellData.getValue().sharesProperty());
+        securityTransactionAmountColumn.setCellValueFactory(cellData -> cellData.getValue().amountProperty());
+        securityTransactionCurrencyColumn.setCellValueFactory(cellData -> cellData.getValue().currencyProperty());
+        securityTransactionFeesColumn.setCellValueFactory(cellData -> cellData.getValue().feesProperty());
+        securityTransactionTaxesColumn.setCellValueFactory(cellData -> cellData.getValue().taxesProperty());
+        securityTransactionNoteColumn.setCellValueFactory(cellData -> cellData.getValue().noteProperty());
+        accountTransactionDateColumn.setCellValueFactory(cellData -> cellData.getValue().dateProperty());
+        accountTransactionTypeColumn.setCellValueFactory(cellData -> cellData.getValue().typeProperty());
+        accountTransactionAmountColumn.setCellValueFactory(cellData -> cellData.getValue().amountProperty());
+        accountTransactionCurrencyColumn.setCellValueFactory(cellData -> cellData.getValue().currencyProperty());
+        accountTransactionSourceColumn.setCellValueFactory(cellData -> cellData.getValue().sourceAccountProperty());
+        accountTransactionTargetColumn.setCellValueFactory(cellData -> cellData.getValue().targetAccountProperty());
+        accountTransactionNoteColumn.setCellValueFactory(cellData -> cellData.getValue().noteProperty());
+        securityAccountTransactionDateColumn.setCellValueFactory(cellData -> cellData.getValue().dateProperty());
+        securityAccountTransactionTypeColumn.setCellValueFactory(cellData -> cellData.getValue().typeProperty());
+        securityAccountTransactionInstrumentColumn.setCellValueFactory(cellData -> cellData.getValue().instrumentProperty());
+        securityAccountTransactionSharesColumn.setCellValueFactory(cellData -> cellData.getValue().sharesProperty());
+        securityAccountTransactionAmountColumn.setCellValueFactory(cellData -> cellData.getValue().amountProperty());
+        securityAccountTransactionCurrencyColumn.setCellValueFactory(cellData -> cellData.getValue().currencyProperty());
+        securityAccountTransactionCashAccountColumn.setCellValueFactory(cellData -> cellData.getValue().cashAccountProperty());
+        securityAccountTransactionFeesColumn.setCellValueFactory(cellData -> cellData.getValue().feesProperty());
+        securityAccountTransactionTaxesColumn.setCellValueFactory(cellData -> cellData.getValue().taxesProperty());
+        securityAccountTransactionNoteColumn.setCellValueFactory(cellData -> cellData.getValue().noteProperty());
 
         securitiesTable.setItems(FXCollections.observableArrayList());
         securityAccountsTable.setItems(FXCollections.observableArrayList());
         cashAccountsTable.setItems(FXCollections.observableArrayList());
+        securityTransactionsTable.setItems(FXCollections.observableArrayList());
+        accountTransactionsTable.setItems(FXCollections.observableArrayList());
+        securityAccountTransactionsTable.setItems(FXCollections.observableArrayList());
         securitiesTable.getSelectionModel().selectedItemProperty().addListener(
-                (observable, oldSelection, newSelection) -> updatePriceChart(newSelection));
+                (observable, oldSelection, newSelection) -> updateSecurityDetails(newSelection));
         securityAccountsTable.getSelectionModel().selectedItemProperty().addListener(
                 (observable, oldSelection, newSelection) -> updateSecurityAccountDetails(newSelection));
         cashAccountsTable.getSelectionModel().selectedItemProperty().addListener(
@@ -200,6 +323,7 @@ public class MainWindowController {
         configurePriceChart();
         configureChartRangeButtons();
         configureInstrumentRows();
+        configureCashAccountRows();
         styleTableChartDivider();
         loadInstrumentLists();
         showAllSecurities();
@@ -337,18 +461,18 @@ public class MainWindowController {
 
     private void loadAllInstruments() {
         securitiesTable.setItems(toSecurityRows(instrumentRepository.findAll()));
-        updatePriceChart(securitiesTable.getSelectionModel().getSelectedItem());
+        updateSecurityDetails(securitiesTable.getSelectionModel().getSelectedItem());
     }
 
     private void loadInstrumentsForList(InstrumentList instrumentList) {
         securitiesTable.setItems(toSecurityRows(instrumentRepository.findByListId(instrumentList.getId())));
-        updatePriceChart(securitiesTable.getSelectionModel().getSelectedItem());
+        updateSecurityDetails(securitiesTable.getSelectionModel().getSelectedItem());
     }
 
     private void selectFirstSecurity() {
         if (securitiesTable.getItems().isEmpty()) {
             securitiesTable.getSelectionModel().clearSelection();
-            updatePriceChart(null);
+            updateSecurityDetails(null);
             return;
         }
 
@@ -372,6 +496,7 @@ public class MainWindowController {
         securityAccountsTable.setItems(FXCollections.observableArrayList(
                 securityAccountRepository.findAll().stream()
                         .map(securityAccount -> new SecurityAccountRow(
+                                securityAccount.getId(),
                                 securityAccount.getName(),
                                 securityAccount.getNote()))
                         .toList()));
@@ -382,9 +507,10 @@ public class MainWindowController {
         cashAccountsTable.setItems(FXCollections.observableArrayList(
                 cashAccountRepository.findAll().stream()
                         .map(cashAccount -> new CashAccountRow(
+                                cashAccount.getId(),
                                 cashAccount.getName(),
                                 cashAccount.getCurrency(),
-                                cashAccount.getBalance() == null ? "" : cashAccount.getBalance().toPlainString(),
+                                decimalToString(portfolioTransactionRepository.calculateCashAccountBalance(cashAccount.getId())),
                                 cashAccount.getNote()))
                         .toList()));
         selectFirstCashAccount();
@@ -408,6 +534,15 @@ public class MainWindowController {
         }
 
         cashAccountsTable.getSelectionModel().selectFirst();
+    }
+
+    private void selectCashAccount(Long cashAccountId) {
+        cashAccountsTable.getItems().stream()
+                .filter(row -> row.id().equals(cashAccountId))
+                .findFirst()
+                .ifPresentOrElse(
+                        row -> cashAccountsTable.getSelectionModel().select(row),
+                        this::selectFirstCashAccount);
     }
 
     private Dialog<InstrumentInput> createInstrumentDialog() {
@@ -485,7 +620,6 @@ public class MainWindowController {
 
         TextField nameField = new TextField();
         TextField currencyField = new TextField();
-        TextField balanceField = new TextField("0");
         TextArea noteField = new TextArea();
         noteField.setPrefRowCount(4);
 
@@ -495,8 +629,7 @@ public class MainWindowController {
         form.setPadding(new Insets(10, 0, 0, 0));
         form.addRow(0, new Label("Name:"), nameField);
         form.addRow(1, new Label("Currency:"), currencyField);
-        form.addRow(2, new Label("Balance:"), balanceField);
-        form.addRow(3, new Label("Note:"), noteField);
+        form.addRow(2, new Label("Note:"), noteField);
 
         dialog.getDialogPane().setContent(form);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
@@ -507,7 +640,6 @@ public class MainWindowController {
             return new CashAccountInput(
                     nameField.getText().trim(),
                     currencyField.getText().trim(),
-                    balanceField.getText().trim(),
                     noteField.getText().trim());
         });
         return dialog;
@@ -549,6 +681,7 @@ public class MainWindowController {
                     input.name(),
                     emptyToNull(input.note()));
             SecurityAccountRow accountRow = new SecurityAccountRow(
+                    securityAccount.getId(),
                     securityAccount.getName(),
                     securityAccount.getNote());
             securityAccountsTable.getItems().add(accountRow);
@@ -576,19 +709,254 @@ public class MainWindowController {
             CashAccount cashAccount = cashAccountRepository.save(
                     input.name(),
                     input.currency().toUpperCase(),
-                    parseRequiredDecimal(input.balance()),
                     emptyToNull(input.note()));
             CashAccountRow accountRow = new CashAccountRow(
+                    cashAccount.getId(),
                     cashAccount.getName(),
                     cashAccount.getCurrency(),
-                    cashAccount.getBalance().toPlainString(),
+                    decimalToString(portfolioTransactionRepository.calculateCashAccountBalance(cashAccount.getId())),
                     cashAccount.getNote());
             cashAccountsTable.getItems().add(accountRow);
             cashAccountsTable.getSelectionModel().select(accountRow);
-        } catch (NumberFormatException exception) {
-            showAccountSaveError("Balance must be a valid number.");
         } catch (RuntimeException exception) {
             showAccountSaveError("Check that the cash account name is unique and try again.");
+        }
+    }
+
+    private void promptForSecurityTransaction(TransactionType type, SecurityRow securityRow) {
+        if (securityRow == null) {
+            return;
+        }
+
+        createSecurityTransactionDialog(type, securityRow)
+                .showAndWait()
+                .ifPresent(input -> createSecurityTransaction(type, securityRow, input));
+    }
+
+    private Dialog<SecurityTransactionInput> createSecurityTransactionDialog(
+            TransactionType type,
+            SecurityRow securityRow) {
+        Dialog<SecurityTransactionInput> dialog = new Dialog<>();
+        dialog.setTitle(transactionTitle(type));
+        dialog.setHeaderText(transactionTitle(type) + " - " + securityTitle(securityRow));
+
+        DatePicker datePicker = new DatePicker(LocalDate.now());
+        TextField sharesField = new TextField();
+        TextField amountField = new TextField();
+        TextField currencyField = new TextField(securityRow.currencyProperty().get());
+        TextField feesField = new TextField("0");
+        TextField taxesField = new TextField("0");
+        TextArea noteField = new TextArea();
+        noteField.setPrefRowCount(3);
+        ComboBox<EntityChoice> securityAccountField = new ComboBox<>(toSecurityAccountChoices());
+        ComboBox<EntityChoice> cashAccountField = new ComboBox<>(toCashAccountChoices());
+        securityAccountField.getSelectionModel().selectFirst();
+        cashAccountField.getSelectionModel().selectFirst();
+
+        GridPane form = new GridPane();
+        form.setHgap(10);
+        form.setVgap(10);
+        form.setPadding(new Insets(10, 0, 0, 0));
+        form.addRow(0, new Label("Date:"), datePicker);
+        if (type != TransactionType.DIVIDEND) {
+            form.addRow(1, new Label("Shares:"), sharesField);
+        }
+        form.addRow(2, new Label("Amount:"), amountField);
+        form.addRow(3, new Label("Currency:"), currencyField);
+        form.addRow(4, new Label("Security Account:"), securityAccountField);
+        form.addRow(5, new Label("Cash Account:"), cashAccountField);
+        if (type != TransactionType.DIVIDEND) {
+            form.addRow(6, new Label("Fees:"), feesField);
+        }
+        form.addRow(7, new Label("Taxes:"), taxesField);
+        form.addRow(8, new Label("Note:"), noteField);
+
+        dialog.getDialogPane().setContent(form);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType != ButtonType.OK) {
+                return null;
+            }
+            return new SecurityTransactionInput(
+                    datePicker.getValue(),
+                    sharesField.getText().trim(),
+                    amountField.getText().trim(),
+                    currencyField.getText().trim(),
+                    selectedId(securityAccountField),
+                    selectedId(cashAccountField),
+                    feesField.getText().trim(),
+                    taxesField.getText().trim(),
+                    noteField.getText().trim());
+        });
+        return dialog;
+    }
+
+    private void createSecurityTransaction(
+            TransactionType type,
+            SecurityRow securityRow,
+            SecurityTransactionInput input) {
+        if (input.transactionDate() == null) {
+            showTransactionSaveError("The transaction date is required.");
+            return;
+        }
+        if (input.currency().isEmpty()) {
+            showTransactionSaveError("The transaction currency is required.");
+            return;
+        }
+
+        try {
+            BigDecimal amount = parseRequiredDecimal(input.amount());
+            BigDecimal taxes = parseOptionalDecimal(input.taxes());
+            if (type == TransactionType.DIVIDEND) {
+                transactionService.dividend(
+                        securityRow.id(),
+                        input.securityAccountId(),
+                        input.cashAccountId(),
+                        input.transactionDate(),
+                        amount,
+                        input.currency().toUpperCase(),
+                        taxes,
+                        emptyToNull(input.note()));
+                updateSecurityTransactions(securityRow);
+                return;
+            }
+
+            BigDecimal shares = parseRequiredDecimal(input.shares());
+            BigDecimal fees = parseOptionalDecimal(input.fees());
+            if (type == TransactionType.BUY) {
+                transactionService.buy(
+                        securityRow.id(),
+                        input.securityAccountId(),
+                        input.cashAccountId(),
+                        input.transactionDate(),
+                        shares,
+                        amount,
+                        input.currency().toUpperCase(),
+                        fees,
+                        taxes,
+                        emptyToNull(input.note()));
+            } else if (type == TransactionType.SELL) {
+                transactionService.sell(
+                        securityRow.id(),
+                        input.securityAccountId(),
+                        input.cashAccountId(),
+                        input.transactionDate(),
+                        shares,
+                        amount,
+                        input.currency().toUpperCase(),
+                        fees,
+                        taxes,
+                        emptyToNull(input.note()));
+            }
+            updateSecurityTransactions(securityRow);
+        } catch (NumberFormatException exception) {
+            showTransactionSaveError("Amount, shares, fees, and taxes must be valid numbers.");
+        } catch (RuntimeException exception) {
+            showTransactionSaveError("The transaction was not saved.");
+        }
+    }
+
+    private void promptForCashAccountTransaction(TransactionType type, CashAccountRow cashAccountRow) {
+        if (cashAccountRow == null) {
+            return;
+        }
+
+        createCashAccountTransactionDialog(type, cashAccountRow)
+                .showAndWait()
+                .ifPresent(input -> createCashAccountTransaction(type, cashAccountRow, input));
+    }
+
+    private Dialog<CashAccountTransactionInput> createCashAccountTransactionDialog(
+            TransactionType type,
+            CashAccountRow cashAccountRow) {
+        Dialog<CashAccountTransactionInput> dialog = new Dialog<>();
+        dialog.setTitle(transactionTitle(type));
+        dialog.setHeaderText(transactionTitle(type) + " - " + cashAccountRow.nameProperty().get());
+
+        DatePicker datePicker = new DatePicker(LocalDate.now());
+        TextField amountField = new TextField();
+        TextField currencyField = new TextField(cashAccountRow.currencyProperty().get());
+        TextArea noteField = new TextArea();
+        noteField.setPrefRowCount(3);
+        ComboBox<EntityChoice> targetCashAccountField = new ComboBox<>(toCashAccountChoices(cashAccountRow.id()));
+        targetCashAccountField.getSelectionModel().selectFirst();
+
+        GridPane form = new GridPane();
+        form.setHgap(10);
+        form.setVgap(10);
+        form.setPadding(new Insets(10, 0, 0, 0));
+        form.addRow(0, new Label("Date:"), datePicker);
+        form.addRow(1, new Label("Amount:"), amountField);
+        form.addRow(2, new Label("Currency:"), currencyField);
+        if (type == TransactionType.CASH_TRANSFER) {
+            form.addRow(3, new Label("Target Account:"), targetCashAccountField);
+        }
+        form.addRow(4, new Label("Note:"), noteField);
+
+        dialog.getDialogPane().setContent(form);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType != ButtonType.OK) {
+                return null;
+            }
+            return new CashAccountTransactionInput(
+                    datePicker.getValue(),
+                    amountField.getText().trim(),
+                    currencyField.getText().trim(),
+                    selectedId(targetCashAccountField),
+                    noteField.getText().trim());
+        });
+        return dialog;
+    }
+
+    private void createCashAccountTransaction(
+            TransactionType type,
+            CashAccountRow cashAccountRow,
+            CashAccountTransactionInput input) {
+        if (input.transactionDate() == null) {
+            showTransactionSaveError("The transaction date is required.");
+            return;
+        }
+        if (input.currency().isEmpty()) {
+            showTransactionSaveError("The transaction currency is required.");
+            return;
+        }
+        if (type == TransactionType.CASH_TRANSFER && input.targetCashAccountId() == null) {
+            showTransactionSaveError("The target cash account is required.");
+            return;
+        }
+
+        try {
+            BigDecimal amount = parseRequiredDecimal(input.amount());
+            if (type == TransactionType.DEPOSIT) {
+                transactionService.deposit(
+                        cashAccountRow.id(),
+                        input.transactionDate(),
+                        amount,
+                        input.currency().toUpperCase(),
+                        emptyToNull(input.note()));
+            } else if (type == TransactionType.WITHDRAWAL) {
+                transactionService.withdrawal(
+                        cashAccountRow.id(),
+                        input.transactionDate(),
+                        amount,
+                        input.currency().toUpperCase(),
+                        emptyToNull(input.note()));
+            } else if (type == TransactionType.CASH_TRANSFER) {
+                transactionService.transfer(
+                        cashAccountRow.id(),
+                        input.targetCashAccountId(),
+                        input.transactionDate(),
+                        amount,
+                        input.currency().toUpperCase(),
+                        emptyToNull(input.note()));
+            }
+            loadCashAccounts();
+            selectCashAccount(cashAccountRow.id());
+        } catch (NumberFormatException exception) {
+            showTransactionSaveError("Amount must be a valid number.");
+        } catch (RuntimeException exception) {
+            showTransactionSaveError("The transaction was not saved.");
         }
     }
 
@@ -625,8 +993,58 @@ public class MainWindowController {
         return new BigDecimal(value);
     }
 
+    private BigDecimal parseOptionalDecimal(String value) {
+        if (value.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return new BigDecimal(value);
+    }
+
     private String emptyToNull(String value) {
         return value.isEmpty() ? null : value;
+    }
+
+    private String decimalToString(BigDecimal value) {
+        return value == null ? "" : value.toPlainString();
+    }
+
+    private ObservableList<EntityChoice> toCashAccountChoices() {
+        return toCashAccountChoices(null);
+    }
+
+    private ObservableList<EntityChoice> toCashAccountChoices(Long excludedAccountId) {
+        List<EntityChoice> choices = new java.util.ArrayList<>();
+        choices.add(EntityChoice.none());
+        cashAccountRepository.findAll().stream()
+                .filter(account -> excludedAccountId == null || !excludedAccountId.equals(account.getId()))
+                .map(account -> new EntityChoice(account.getId(), account.getName()))
+                .forEach(choices::add);
+        return FXCollections.observableArrayList(choices);
+    }
+
+    private ObservableList<EntityChoice> toSecurityAccountChoices() {
+        List<EntityChoice> choices = new java.util.ArrayList<>();
+        choices.add(EntityChoice.none());
+        securityAccountRepository.findAll().stream()
+                .map(account -> new EntityChoice(account.getId(), account.getName()))
+                .forEach(choices::add);
+        return FXCollections.observableArrayList(choices);
+    }
+
+    private Long selectedId(ComboBox<EntityChoice> comboBox) {
+        EntityChoice selectedChoice = comboBox.getSelectionModel().getSelectedItem();
+        return selectedChoice == null ? null : selectedChoice.id();
+    }
+
+    private String transactionTitle(TransactionType type) {
+        return switch (type) {
+            case DEPOSIT -> "Deposit";
+            case WITHDRAWAL -> "Withdrawal";
+            case CASH_TRANSFER -> "Transfer";
+            case BUY -> "Buy";
+            case SELL -> "Sell";
+            case DIVIDEND -> "Dividend";
+        };
     }
 
     private void showInstrumentSaveError(String message) {
@@ -645,14 +1063,24 @@ public class MainWindowController {
         alert.showAndWait();
     }
 
+    private void showTransactionSaveError(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Could Not Add Transaction");
+        alert.setHeaderText("The transaction was not saved.");
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
     private void updateSecurityAccountDetails(SecurityAccountRow accountRow) {
         if (activeView != MainView.SECURITY_ACCOUNTS) {
             return;
         }
 
+        showAccountTransactionTable(securityAccountTransactionsTable);
         accountDetailTitleLabel.setText(accountRow == null
                 ? "No account selected"
                 : accountRow.nameProperty().get());
+        updateSecurityAccountTransactions(accountRow);
     }
 
     private void updateCashAccountDetails(CashAccountRow accountRow) {
@@ -660,9 +1088,59 @@ public class MainWindowController {
             return;
         }
 
+        showAccountTransactionTable(accountTransactionsTable);
         accountDetailTitleLabel.setText(accountRow == null
                 ? "No account selected"
                 : accountRow.nameProperty().get());
+        updateCashAccountTransactions(accountRow);
+    }
+
+    private void showAccountTransactionTable(Node visibleTable) {
+        securityAccountTransactionsTable.setVisible(securityAccountTransactionsTable == visibleTable);
+        securityAccountTransactionsTable.setManaged(securityAccountTransactionsTable == visibleTable);
+        accountTransactionsTable.setVisible(accountTransactionsTable == visibleTable);
+        accountTransactionsTable.setManaged(accountTransactionsTable == visibleTable);
+    }
+
+    private void updateSecurityAccountTransactions(SecurityAccountRow accountRow) {
+        if (accountRow == null) {
+            securityAccountTransactionsTable.setItems(FXCollections.observableArrayList());
+            return;
+        }
+
+        securityAccountTransactionsTable.setItems(FXCollections.observableArrayList(
+                portfolioTransactionRepository.findBySecurityAccountId(accountRow.id()).stream()
+                        .map(transaction -> new SecurityAccountTransactionRow(
+                                transaction.getTransactionDate() == null ? "" : transaction.getTransactionDate().toString(),
+                                transaction.getType() == null ? "" : transactionTitle(transaction.getType()),
+                                transaction.getInstrument() == null ? "" : transaction.getInstrument().getName(),
+                                decimalToString(transaction.getShares()),
+                                decimalToString(transaction.getAmount()),
+                                transaction.getCurrency(),
+                                transaction.getCashAccount() == null ? "" : transaction.getCashAccount().getName(),
+                                decimalToString(transaction.getFees()),
+                                decimalToString(transaction.getTaxes()),
+                                transaction.getNote()))
+                        .toList()));
+    }
+
+    private void updateCashAccountTransactions(CashAccountRow accountRow) {
+        if (accountRow == null) {
+            accountTransactionsTable.setItems(FXCollections.observableArrayList());
+            return;
+        }
+
+        accountTransactionsTable.setItems(FXCollections.observableArrayList(
+                portfolioTransactionRepository.findByCashAccountId(accountRow.id()).stream()
+                        .map(transaction -> new AccountTransactionRow(
+                                transaction.getTransactionDate() == null ? "" : transaction.getTransactionDate().toString(),
+                                transaction.getType() == null ? "" : transactionTitle(transaction.getType()),
+                                decimalToString(transaction.getAmount()),
+                                transaction.getCurrency(),
+                                transaction.getCashAccount() == null ? "" : transaction.getCashAccount().getName(),
+                                transaction.getTargetCashAccount() == null ? "" : transaction.getTargetCashAccount().getName(),
+                                transaction.getNote()))
+                        .toList()));
     }
 
     private void configureInstrumentRows() {
@@ -691,6 +1169,15 @@ public class MainWindowController {
     }
 
     private ContextMenu createSecurityRowContextMenu(TableRow<SecurityRow> row) {
+        MenuItem buyItem = new MenuItem("buy");
+        buyItem.setOnAction(event -> promptForSecurityTransaction(TransactionType.BUY, row.getItem()));
+
+        MenuItem sellItem = new MenuItem("sell");
+        sellItem.setOnAction(event -> promptForSecurityTransaction(TransactionType.SELL, row.getItem()));
+
+        MenuItem dividendItem = new MenuItem("dividend");
+        dividendItem.setOnAction(event -> promptForSecurityTransaction(TransactionType.DIVIDEND, row.getItem()));
+
         MenuItem removeFromListItem = new MenuItem(removeFromListText());
         removeFromListItem.setDisable(activeInstrumentList == null);
         removeFromListItem.setOnAction(event -> removeInstrumentFromCurrentList(row.getItem()));
@@ -698,7 +1185,34 @@ public class MainWindowController {
         MenuItem deleteSecurityItem = new MenuItem("delete security");
         deleteSecurityItem.setOnAction(event -> deleteInstrument(row.getItem()));
 
-        return new ContextMenu(removeFromListItem, deleteSecurityItem);
+        return new ContextMenu(buyItem, sellItem, dividendItem, removeFromListItem, deleteSecurityItem);
+    }
+
+    private void configureCashAccountRows() {
+        cashAccountsTable.setRowFactory(tableView -> {
+            TableRow<CashAccountRow> row = new TableRow<>();
+            row.emptyProperty().addListener((observable, wasEmpty, isEmpty) ->
+                    row.setContextMenu(isEmpty ? null : createCashAccountRowContextMenu(row)));
+            row.setOnContextMenuRequested(event -> {
+                if (!row.isEmpty()) {
+                    row.setContextMenu(createCashAccountRowContextMenu(row));
+                }
+            });
+            return row;
+        });
+    }
+
+    private ContextMenu createCashAccountRowContextMenu(TableRow<CashAccountRow> row) {
+        MenuItem depositItem = new MenuItem("deposit");
+        depositItem.setOnAction(event -> promptForCashAccountTransaction(TransactionType.DEPOSIT, row.getItem()));
+
+        MenuItem withdrawalItem = new MenuItem("withdrawal");
+        withdrawalItem.setOnAction(event -> promptForCashAccountTransaction(TransactionType.WITHDRAWAL, row.getItem()));
+
+        MenuItem transferItem = new MenuItem("transfer");
+        transferItem.setOnAction(event -> promptForCashAccountTransaction(TransactionType.CASH_TRANSFER, row.getItem()));
+
+        return new ContextMenu(depositItem, withdrawalItem, transferItem);
     }
 
     private String removeFromListText() {
@@ -742,6 +1256,11 @@ public class MainWindowController {
         alert.showAndWait();
     }
 
+    private void updateSecurityDetails(SecurityRow securityRow) {
+        updatePriceChart(securityRow);
+        updateSecurityTransactions(securityRow);
+    }
+
     private void updatePriceChart(SecurityRow securityRow) {
         priceChart.getData().clear();
         priceChartTitleLabel.setText(securityRow == null
@@ -763,6 +1282,26 @@ public class MainWindowController {
                         price.getPriceDate().toEpochDay(),
                         price.getClosePrice())));
         priceChart.getData().add(series);
+    }
+
+    private void updateSecurityTransactions(SecurityRow securityRow) {
+        if (securityRow == null) {
+            securityTransactionsTable.setItems(FXCollections.observableArrayList());
+            return;
+        }
+
+        securityTransactionsTable.setItems(FXCollections.observableArrayList(
+                portfolioTransactionRepository.findByInstrumentId(securityRow.id()).stream()
+                        .map(transaction -> new SecurityTransactionRow(
+                                transaction.getTransactionDate() == null ? "" : transaction.getTransactionDate().toString(),
+                                transaction.getType() == null ? "" : transactionTitle(transaction.getType()),
+                                decimalToString(transaction.getShares()),
+                                decimalToString(transaction.getAmount()),
+                                transaction.getCurrency(),
+                                decimalToString(transaction.getFees()),
+                                decimalToString(transaction.getTaxes()),
+                                transaction.getNote()))
+                        .toList()));
     }
 
     private void updatePriceChartXAxis(List<InstrumentPrice> prices, LocalDate firstVisibleDate) {
@@ -829,7 +1368,7 @@ public class MainWindowController {
             rangeButton.setMnemonicParsing(false);
             rangeButton.setOnAction(event -> {
                 activeChartRange = range;
-                updatePriceChart(securitiesTable.getSelectionModel().getSelectedItem());
+                updateSecurityDetails(securitiesTable.getSelectionModel().getSelectedItem());
             });
             chartRangeButtons.getChildren().add(rangeButton);
 
@@ -866,7 +1405,7 @@ public class MainWindowController {
                 Platform.runLater(() -> {
                     SecurityRow selectedSecurity = securitiesTable.getSelectionModel().getSelectedItem();
                     if (selectedSecurity != null && selectedSecurity.id().equals(instrument.getId())) {
-                        updatePriceChart(selectedSecurity);
+                        updateSecurityDetails(selectedSecurity);
                     }
                 });
             } catch (Exception exception) {
@@ -982,7 +1521,38 @@ public class MainWindowController {
     private record SecurityAccountInput(String name, String note) {
     }
 
-    private record CashAccountInput(String name, String currency, String balance, String note) {
+    private record CashAccountInput(String name, String currency, String note) {
+    }
+
+    private record SecurityTransactionInput(
+            LocalDate transactionDate,
+            String shares,
+            String amount,
+            String currency,
+            Long securityAccountId,
+            Long cashAccountId,
+            String fees,
+            String taxes,
+            String note) {
+    }
+
+    private record CashAccountTransactionInput(
+            LocalDate transactionDate,
+            String amount,
+            String currency,
+            Long targetCashAccountId,
+            String note) {
+    }
+
+    private record EntityChoice(Long id, String name) {
+        private static EntityChoice none() {
+            return new EntityChoice(null, "None");
+        }
+
+        @Override
+        public String toString() {
+            return name;
+        }
     }
 
     private enum MainView {
@@ -992,12 +1562,18 @@ public class MainWindowController {
     }
 
     public static class SecurityAccountRow {
+        private final Long id;
         private final StringProperty name = new SimpleStringProperty();
         private final StringProperty note = new SimpleStringProperty();
 
-        public SecurityAccountRow(String name, String note) {
+        public SecurityAccountRow(Long id, String name, String note) {
+            this.id = id;
             this.name.set(name);
             this.note.set(note);
+        }
+
+        public Long id() {
+            return id;
         }
 
         public StringProperty nameProperty() {
@@ -1010,16 +1586,22 @@ public class MainWindowController {
     }
 
     public static class CashAccountRow {
+        private final Long id;
         private final StringProperty name = new SimpleStringProperty();
         private final StringProperty currency = new SimpleStringProperty();
         private final StringProperty balance = new SimpleStringProperty();
         private final StringProperty note = new SimpleStringProperty();
 
-        public CashAccountRow(String name, String currency, String balance, String note) {
+        public CashAccountRow(Long id, String name, String currency, String balance, String note) {
+            this.id = id;
             this.name.set(name);
             this.currency.set(currency);
             this.balance.set(balance);
             this.note.set(note);
+        }
+
+        public Long id() {
+            return id;
         }
 
         public StringProperty nameProperty() {
@@ -1032,6 +1614,199 @@ public class MainWindowController {
 
         public StringProperty balanceProperty() {
             return balance;
+        }
+
+        public StringProperty noteProperty() {
+            return note;
+        }
+    }
+
+    public static class SecurityTransactionRow {
+        private final StringProperty date = new SimpleStringProperty();
+        private final StringProperty type = new SimpleStringProperty();
+        private final StringProperty shares = new SimpleStringProperty();
+        private final StringProperty amount = new SimpleStringProperty();
+        private final StringProperty currency = new SimpleStringProperty();
+        private final StringProperty fees = new SimpleStringProperty();
+        private final StringProperty taxes = new SimpleStringProperty();
+        private final StringProperty note = new SimpleStringProperty();
+
+        public SecurityTransactionRow(
+                String date,
+                String type,
+                String shares,
+                String amount,
+                String currency,
+                String fees,
+                String taxes,
+                String note) {
+            this.date.set(date);
+            this.type.set(type);
+            this.shares.set(shares);
+            this.amount.set(amount);
+            this.currency.set(currency);
+            this.fees.set(fees);
+            this.taxes.set(taxes);
+            this.note.set(note);
+        }
+
+        public StringProperty dateProperty() {
+            return date;
+        }
+
+        public StringProperty typeProperty() {
+            return type;
+        }
+
+        public StringProperty sharesProperty() {
+            return shares;
+        }
+
+        public StringProperty amountProperty() {
+            return amount;
+        }
+
+        public StringProperty currencyProperty() {
+            return currency;
+        }
+
+        public StringProperty feesProperty() {
+            return fees;
+        }
+
+        public StringProperty taxesProperty() {
+            return taxes;
+        }
+
+        public StringProperty noteProperty() {
+            return note;
+        }
+    }
+
+    public static class AccountTransactionRow {
+        private final StringProperty date = new SimpleStringProperty();
+        private final StringProperty type = new SimpleStringProperty();
+        private final StringProperty amount = new SimpleStringProperty();
+        private final StringProperty currency = new SimpleStringProperty();
+        private final StringProperty sourceAccount = new SimpleStringProperty();
+        private final StringProperty targetAccount = new SimpleStringProperty();
+        private final StringProperty note = new SimpleStringProperty();
+
+        public AccountTransactionRow(
+                String date,
+                String type,
+                String amount,
+                String currency,
+                String sourceAccount,
+                String targetAccount,
+                String note) {
+            this.date.set(date);
+            this.type.set(type);
+            this.amount.set(amount);
+            this.currency.set(currency);
+            this.sourceAccount.set(sourceAccount);
+            this.targetAccount.set(targetAccount);
+            this.note.set(note);
+        }
+
+        public StringProperty dateProperty() {
+            return date;
+        }
+
+        public StringProperty typeProperty() {
+            return type;
+        }
+
+        public StringProperty amountProperty() {
+            return amount;
+        }
+
+        public StringProperty currencyProperty() {
+            return currency;
+        }
+
+        public StringProperty sourceAccountProperty() {
+            return sourceAccount;
+        }
+
+        public StringProperty targetAccountProperty() {
+            return targetAccount;
+        }
+
+        public StringProperty noteProperty() {
+            return note;
+        }
+    }
+
+    public static class SecurityAccountTransactionRow {
+        private final StringProperty date = new SimpleStringProperty();
+        private final StringProperty type = new SimpleStringProperty();
+        private final StringProperty instrument = new SimpleStringProperty();
+        private final StringProperty shares = new SimpleStringProperty();
+        private final StringProperty amount = new SimpleStringProperty();
+        private final StringProperty currency = new SimpleStringProperty();
+        private final StringProperty cashAccount = new SimpleStringProperty();
+        private final StringProperty fees = new SimpleStringProperty();
+        private final StringProperty taxes = new SimpleStringProperty();
+        private final StringProperty note = new SimpleStringProperty();
+
+        public SecurityAccountTransactionRow(
+                String date,
+                String type,
+                String instrument,
+                String shares,
+                String amount,
+                String currency,
+                String cashAccount,
+                String fees,
+                String taxes,
+                String note) {
+            this.date.set(date);
+            this.type.set(type);
+            this.instrument.set(instrument);
+            this.shares.set(shares);
+            this.amount.set(amount);
+            this.currency.set(currency);
+            this.cashAccount.set(cashAccount);
+            this.fees.set(fees);
+            this.taxes.set(taxes);
+            this.note.set(note);
+        }
+
+        public StringProperty dateProperty() {
+            return date;
+        }
+
+        public StringProperty typeProperty() {
+            return type;
+        }
+
+        public StringProperty instrumentProperty() {
+            return instrument;
+        }
+
+        public StringProperty sharesProperty() {
+            return shares;
+        }
+
+        public StringProperty amountProperty() {
+            return amount;
+        }
+
+        public StringProperty currencyProperty() {
+            return currency;
+        }
+
+        public StringProperty cashAccountProperty() {
+            return cashAccount;
+        }
+
+        public StringProperty feesProperty() {
+            return fees;
+        }
+
+        public StringProperty taxesProperty() {
+            return taxes;
         }
 
         public StringProperty noteProperty() {

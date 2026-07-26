@@ -9,6 +9,7 @@
         <class>com.example.portfoliomanagement.persistence.Instrument</class>
         <class>com.example.portfoliomanagement.persistence.InstrumentPrice</class>
         <class>com.example.portfoliomanagement.persistence.InstrumentList</class>
+        <class>com.example.portfoliomanagement.persistence.PortfolioTransaction</class>
         <class>com.example.portfoliomanagement.persistence.SecurityAccount</class>
         <properties>
             <property name="jakarta.persistence.jdbc.driver" value="org.h2.Driver" />

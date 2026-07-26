@@ -3,7 +3,6 @@ package com.example.portfoliomanagement.persistence;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityTransaction;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 public class CashAccountRepository {
@@ -20,13 +19,13 @@ public class CashAccountRepository {
         }
     }
 
-    public CashAccount save(String name, String currency, BigDecimal balance, String note) {
+    public CashAccount save(String name, String currency, String note) {
         EntityManager entityManager = PersistenceManager.createEntityManager();
         EntityTransaction transaction = entityManager.getTransaction();
 
         try {
             transaction.begin();
-            CashAccount cashAccount = new CashAccount(name, currency, balance, note);
+            CashAccount cashAccount = new CashAccount(name, currency, note);
             entityManager.persist(cashAccount);
             transaction.commit();
             return cashAccount;

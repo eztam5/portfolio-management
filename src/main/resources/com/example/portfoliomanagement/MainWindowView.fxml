@@ -172,11 +172,22 @@
                                                 </Tab>
                                                 <Tab text="Transactions">
                                                     <content>
-                                                        <StackPane styleClass="transactions-tab-content">
-                                                            <children>
-                                                                <Label styleClass="empty-state-label" text="No transactions available." />
-                                                            </children>
-                                                        </StackPane>
+                                                        <TableView fx:id="securityTransactionsTable"
+                                                                   styleClass="transactions-table">
+                                                            <columns>
+                                                                <TableColumn fx:id="securityTransactionDateColumn" minWidth="90.0" prefWidth="110.0" text="Date" />
+                                                                <TableColumn fx:id="securityTransactionTypeColumn" minWidth="90.0" prefWidth="110.0" text="Type" />
+                                                                <TableColumn fx:id="securityTransactionSharesColumn" minWidth="90.0" prefWidth="120.0" text="Shares" />
+                                                                <TableColumn fx:id="securityTransactionAmountColumn" minWidth="100.0" prefWidth="130.0" text="Amount" />
+                                                                <TableColumn fx:id="securityTransactionCurrencyColumn" minWidth="80.0" prefWidth="100.0" text="Currency" />
+                                                                <TableColumn fx:id="securityTransactionFeesColumn" minWidth="80.0" prefWidth="100.0" text="Fees" />
+                                                                <TableColumn fx:id="securityTransactionTaxesColumn" minWidth="80.0" prefWidth="100.0" text="Taxes" />
+                                                                <TableColumn fx:id="securityTransactionNoteColumn" minWidth="180.0" prefWidth="280.0" text="Note" />
+                                                            </columns>
+                                                            <placeholder>
+                                                                <Label text="No transactions available." />
+                                                            </placeholder>
+                                                        </TableView>
                                                     </content>
                                                 </Tab>
                                             </tabs>
@@ -195,9 +206,41 @@
                                             <tabs>
                                                 <Tab text="Transactions">
                                                     <content>
-                                                        <StackPane styleClass="transactions-tab-content">
+                                                        <StackPane>
                                                             <children>
-                                                                <Label styleClass="empty-state-label" text="No transactions available." />
+                                                                <TableView fx:id="securityAccountTransactionsTable"
+                                                                           styleClass="transactions-table">
+                                                                    <columns>
+                                                                        <TableColumn fx:id="securityAccountTransactionDateColumn" minWidth="90.0" prefWidth="110.0" text="Date" />
+                                                                        <TableColumn fx:id="securityAccountTransactionTypeColumn" minWidth="90.0" prefWidth="110.0" text="Type" />
+                                                                        <TableColumn fx:id="securityAccountTransactionInstrumentColumn" minWidth="150.0" prefWidth="220.0" text="Instrument" />
+                                                                        <TableColumn fx:id="securityAccountTransactionSharesColumn" minWidth="90.0" prefWidth="120.0" text="Shares" />
+                                                                        <TableColumn fx:id="securityAccountTransactionAmountColumn" minWidth="100.0" prefWidth="130.0" text="Amount" />
+                                                                        <TableColumn fx:id="securityAccountTransactionCurrencyColumn" minWidth="80.0" prefWidth="100.0" text="Currency" />
+                                                                        <TableColumn fx:id="securityAccountTransactionCashAccountColumn" minWidth="140.0" prefWidth="180.0" text="Cash Account" />
+                                                                        <TableColumn fx:id="securityAccountTransactionFeesColumn" minWidth="80.0" prefWidth="100.0" text="Fees" />
+                                                                        <TableColumn fx:id="securityAccountTransactionTaxesColumn" minWidth="80.0" prefWidth="100.0" text="Taxes" />
+                                                                        <TableColumn fx:id="securityAccountTransactionNoteColumn" minWidth="180.0" prefWidth="280.0" text="Note" />
+                                                                    </columns>
+                                                                    <placeholder>
+                                                                        <Label text="No transactions available." />
+                                                                    </placeholder>
+                                                                </TableView>
+                                                                <TableView fx:id="accountTransactionsTable"
+                                                                           styleClass="transactions-table">
+                                                                    <columns>
+                                                                        <TableColumn fx:id="accountTransactionDateColumn" minWidth="90.0" prefWidth="110.0" text="Date" />
+                                                                        <TableColumn fx:id="accountTransactionTypeColumn" minWidth="100.0" prefWidth="130.0" text="Type" />
+                                                                        <TableColumn fx:id="accountTransactionAmountColumn" minWidth="100.0" prefWidth="130.0" text="Amount" />
+                                                                        <TableColumn fx:id="accountTransactionCurrencyColumn" minWidth="80.0" prefWidth="100.0" text="Currency" />
+                                                                        <TableColumn fx:id="accountTransactionSourceColumn" minWidth="140.0" prefWidth="180.0" text="Source Account" />
+                                                                        <TableColumn fx:id="accountTransactionTargetColumn" minWidth="140.0" prefWidth="180.0" text="Target Account" />
+                                                                        <TableColumn fx:id="accountTransactionNoteColumn" minWidth="180.0" prefWidth="280.0" text="Note" />
+                                                                    </columns>
+                                                                    <placeholder>
+                                                                        <Label text="No transactions available." />
+                                                                    </placeholder>
+                                                                </TableView>
                                                             </children>
                                                         </StackPane>
                                                     </content>
