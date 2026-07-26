@@ -18,7 +18,11 @@
            xmlns:fx="http://javafx.com/fxml/1"
            fx:controller="com.example.portfoliomanagement.MainWindowController">
     <items>
-        <VBox fx:id="menuBar" minWidth="160.0" prefWidth="220.0" styleClass="side-menu">
+        <VBox fx:id="menuBar"
+              minWidth="160.0"
+              prefWidth="220.0"
+              styleClass="side-menu"
+              SplitPane.resizableWithParent="false">
             <children>
                 <Label styleClass="app-title" text="Portfolio" />
                 <VBox styleClass="menu-section">
@@ -90,23 +94,50 @@
                         <VBox minHeight="150.0" styleClass="chart-section">
                             <children>
                                 <Label fx:id="priceChartTitleLabel"
+                                       maxWidth="Infinity"
                                        styleClass="chart-title-label"
-                                       text="Price Chart" />
-                                <LineChart fx:id="priceChart"
-                                           animated="false"
-                                           createSymbols="false"
-                                           legendVisible="false"
-                                           VBox.vgrow="ALWAYS">
-                                    <xAxis>
-                                        <CategoryAxis side="BOTTOM" />
-                                    </xAxis>
-                                    <yAxis>
-                                        <NumberAxis side="LEFT" />
-                                    </yAxis>
-                                    <padding>
-                                        <Insets bottom="0.0" left="0.0" right="0.0" top="4.0" />
-                                    </padding>
-                                </LineChart>
+                                       text="No security selected" />
+                                <TabPane styleClass="security-detail-tabs"
+                                         tabClosingPolicy="UNAVAILABLE"
+                                         VBox.vgrow="ALWAYS">
+                                    <tabs>
+                                        <Tab text="Chart">
+                                            <content>
+                                                <VBox styleClass="chart-tab-content">
+                                                    <children>
+                                                        <HBox fx:id="chartRangeButtons"
+                                                              alignment="CENTER_RIGHT"
+                                                              styleClass="chart-range-buttons" />
+                                                        <LineChart fx:id="priceChart"
+                                                                   animated="false"
+                                                                   createSymbols="false"
+                                                                   legendVisible="false"
+                                                                   VBox.vgrow="ALWAYS">
+                                                            <xAxis>
+                                                                <NumberAxis side="BOTTOM" />
+                                                            </xAxis>
+                                                            <yAxis>
+                                                                <NumberAxis side="LEFT" />
+                                                            </yAxis>
+                                                            <padding>
+                                                                <Insets bottom="0.0" left="0.0" right="0.0" top="4.0" />
+                                                            </padding>
+                                                        </LineChart>
+                                                    </children>
+                                                </VBox>
+                                            </content>
+                                        </Tab>
+                                        <Tab text="Transactions">
+                                            <content>
+                                                <StackPane styleClass="transactions-tab-content">
+                                                    <children>
+                                                        <Label styleClass="empty-state-label" text="No transactions available." />
+                                                    </children>
+                                                </StackPane>
+                                            </content>
+                                        </Tab>
+                                    </tabs>
+                                </TabPane>
                             </children>
                         </VBox>
                     </items>

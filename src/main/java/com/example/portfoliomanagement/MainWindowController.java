@@ -17,6 +17,7 @@ import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
 import javafx.scene.chart.LineChart;
+import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -35,6 +36,7 @@ import javafx.scene.control.ToggleGroup;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DataFormat;
 import javafx.scene.input.TransferMode;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.GridPane;
 import javafx.scene.control.SplitPane;
 import javafx.scene.layout.Region;
@@ -44,17 +46,20 @@ import javafx.scene.layout.VBox;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.util.StringConverter;
 
 public class MainWindowController {
     private static final DataFormat INSTRUMENT_ID_DATA_FORMAT =
             new DataFormat("com.example.portfoliomanagement.instrument-id");
     private static final Logger LOGGER = Logger.getLogger(MainWindowController.class.getName());
+    private static final DateTimeFormatter AXIS_DATE_FORMATTER = DateTimeFormatter.ofPattern("MMM yyyy");
 
     private final InstrumentListRepository instrumentListRepository = new InstrumentListRepository();
     private final InstrumentRepository instrumentRepository = new InstrumentRepository();
@@ -62,7 +67,9 @@ public class MainWindowController {
     private final HistoricalPriceProvider historicalPriceProvider = new YahooFinanceHistoricalPriceProvider();
     private final ObservableList<InstrumentList> securitiesLists = FXCollections.observableArrayList();
     private final ToggleGroup securitiesMenuGroup = new ToggleGroup();
+    private final ToggleGroup chartRangeGroup = new ToggleGroup();
     private InstrumentList activeInstrumentList;
+    private ChartRange activeChartRange = ChartRange.ONE_YEAR;
 
     @FXML
     private URL location;
@@ -92,7 +99,10 @@ public class MainWindowController {
     private Label priceChartTitleLabel;
 
     @FXML
-    private LineChart<String, Number> priceChart;
+    private HBox chartRangeButtons;
+
+    @FXML
+    private LineChart<Number, Number> priceChart;
 
     @FXML
     private TableColumn<SecurityRow, String> nameColumn;
@@ -124,6 +134,8 @@ public class MainWindowController {
         securitiesTable.setItems(FXCollections.observableArrayList());
         securitiesTable.getSelectionModel().selectedItemProperty().addListener(
                 (observable, oldSelection, newSelection) -> updatePriceChart(newSelection));
+        configurePriceChart();
+        configureChartRangeButtons();
         configureInstrumentRows();
         styleTableChartDivider();
         loadInstrumentLists();
@@ -428,21 +440,110 @@ public class MainWindowController {
     private void updatePriceChart(SecurityRow securityRow) {
         priceChart.getData().clear();
         priceChartTitleLabel.setText(securityRow == null
-                ? "Price Chart"
-                : "Price Chart - " + securityRow.nameProperty().get());
+                ? "No security selected"
+                : securityTitle(securityRow));
 
         if (securityRow == null) {
+            updatePriceChartXAxis(List.of(), null);
             return;
         }
 
         List<InstrumentPrice> prices = instrumentPriceRepository.findByInstrumentId(securityRow.id());
-        int fromIndex = Math.max(0, prices.size() - 250);
-        XYChart.Series<String, Number> series = new XYChart.Series<>();
-        prices.subList(fromIndex, prices.size()).forEach(price ->
-                series.getData().add(new XYChart.Data<>(
-                        price.getPriceDate().toString(),
+        LocalDate firstVisibleDate = firstVisibleDate(prices);
+        updatePriceChartXAxis(prices, firstVisibleDate);
+        XYChart.Series<Number, Number> series = new XYChart.Series<>();
+        prices.stream()
+                .filter(price -> firstVisibleDate == null || !price.getPriceDate().isBefore(firstVisibleDate))
+                .forEach(price -> series.getData().add(new XYChart.Data<>(
+                        price.getPriceDate().toEpochDay(),
                         price.getClosePrice())));
         priceChart.getData().add(series);
+    }
+
+    private void updatePriceChartXAxis(List<InstrumentPrice> prices, LocalDate firstVisibleDate) {
+        if (!(priceChart.getXAxis() instanceof NumberAxis xAxis)) {
+            return;
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate lowerDate = firstVisibleDate;
+        if (lowerDate == null && !prices.isEmpty()) {
+            lowerDate = prices.get(0).getPriceDate();
+        }
+        if (lowerDate == null) {
+            lowerDate = today.minusDays(1);
+        }
+
+        long lowerBound = lowerDate.toEpochDay();
+        long upperBound = today.toEpochDay();
+        if (lowerBound >= upperBound) {
+            lowerBound = upperBound - 1;
+        }
+
+        xAxis.setAutoRanging(false);
+        xAxis.setLowerBound(lowerBound);
+        xAxis.setUpperBound(upperBound);
+        xAxis.setTickUnit(Math.max(1, (upperBound - lowerBound) / 6));
+    }
+
+    private String securityTitle(SecurityRow securityRow) {
+        String symbol = securityRow.symbolProperty().get();
+        String name = securityRow.nameProperty().get();
+        if (symbol == null || symbol.isBlank()) {
+            return name;
+        }
+        return symbol + " - " + name;
+    }
+
+    private void configurePriceChart() {
+        if (priceChart.getXAxis() instanceof NumberAxis xAxis) {
+            xAxis.setForceZeroInRange(false);
+            xAxis.setTickLabelFormatter(new StringConverter<>() {
+                @Override
+                public String toString(Number value) {
+                    return LocalDate.ofEpochDay(value.longValue()).format(AXIS_DATE_FORMATTER);
+                }
+
+                @Override
+                public Number fromString(String value) {
+                    return 0;
+                }
+            });
+        }
+
+        if (priceChart.getYAxis() instanceof NumberAxis yAxis) {
+            yAxis.setForceZeroInRange(false);
+        }
+    }
+
+    private void configureChartRangeButtons() {
+        for (ChartRange range : ChartRange.values()) {
+            ToggleButton rangeButton = new ToggleButton(range.label);
+            rangeButton.getStyleClass().add("chart-range-button");
+            rangeButton.setToggleGroup(chartRangeGroup);
+            rangeButton.setMnemonicParsing(false);
+            rangeButton.setOnAction(event -> {
+                activeChartRange = range;
+                updatePriceChart(securitiesTable.getSelectionModel().getSelectedItem());
+            });
+            chartRangeButtons.getChildren().add(rangeButton);
+
+            if (range == activeChartRange) {
+                rangeButton.setSelected(true);
+            }
+        }
+    }
+
+    private LocalDate firstVisibleDate(List<InstrumentPrice> prices) {
+        if (prices.isEmpty() || activeChartRange == ChartRange.ALL) {
+            return null;
+        }
+
+        LocalDate latestPriceDate = prices.get(prices.size() - 1).getPriceDate();
+        if (activeChartRange == ChartRange.YEAR_TO_DATE) {
+            return LocalDate.of(latestPriceDate.getYear(), 1, 1);
+        }
+        return activeChartRange.startDate(latestPriceDate);
     }
 
     private void importHistoricalPrices(Instrument instrument) {
@@ -451,7 +552,7 @@ public class MainWindowController {
         }
 
         LocalDate to = LocalDate.now();
-        LocalDate from = to.minusYears(1);
+        LocalDate from = to.minusYears(10);
         CompletableFuture.runAsync(() -> {
             try {
                 instrumentPriceRepository.saveAll(
@@ -475,6 +576,37 @@ public class MainWindowController {
                         "The security was saved, but historical prices could not be loaded."));
             }
         });
+    }
+
+    private enum ChartRange {
+        ONE_MONTH("1M"),
+        TWO_MONTHS("2M"),
+        SIX_MONTHS("6M"),
+        ONE_YEAR("1Y"),
+        TWO_YEARS("2Y"),
+        THREE_YEARS("3Y"),
+        TEN_YEARS("10Y"),
+        YEAR_TO_DATE("YTD"),
+        ALL("ALL");
+
+        private final String label;
+
+        ChartRange(String label) {
+            this.label = label;
+        }
+
+        private LocalDate startDate(LocalDate latestPriceDate) {
+            return switch (this) {
+                case ONE_MONTH -> latestPriceDate.minusMonths(1);
+                case TWO_MONTHS -> latestPriceDate.minusMonths(2);
+                case SIX_MONTHS -> latestPriceDate.minusMonths(6);
+                case ONE_YEAR -> latestPriceDate.minusYears(1);
+                case TWO_YEARS -> latestPriceDate.minusYears(2);
+                case THREE_YEARS -> latestPriceDate.minusYears(3);
+                case TEN_YEARS -> latestPriceDate.minusYears(10);
+                case YEAR_TO_DATE, ALL -> latestPriceDate;
+            };
+        }
     }
 
     private void configureInstrumentDropTarget(ToggleButton menuItem, InstrumentList instrumentList) {

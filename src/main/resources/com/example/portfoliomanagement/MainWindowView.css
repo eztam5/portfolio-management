@@ -179,10 +179,97 @@
     -fx-spacing: 6;
 }
 
+.chart-toolbar {
+    -fx-min-height: 30px;
+    -fx-spacing: 12;
+}
+
 .chart-title-label {
-    -fx-font-size: 14px;
+    -fx-font-size: 15px;
     -fx-font-weight: 700;
     -fx-text-fill: #1f2937;
+}
+
+.security-detail-tabs {
+    -fx-background-color: #ffffff;
+    -fx-tab-min-height: 24px;
+}
+
+.security-detail-tabs .tab-header-area {
+    -fx-padding: 2 0 0 0;
+}
+
+.security-detail-tabs .tab-header-background {
+    -fx-background-color: #eef2f7;
+    -fx-border-color: transparent transparent #cbd5e1 transparent;
+}
+
+.security-detail-tabs .tab {
+    -fx-background-color: #e2e8f0;
+    -fx-background-insets: 0 1 0 0;
+    -fx-background-radius: 5 5 0 0;
+    -fx-border-color: #cbd5e1 #cbd5e1 #cbd5e1 #cbd5e1;
+    -fx-border-radius: 5 5 0 0;
+    -fx-padding: 2 12 2 12;
+}
+
+.security-detail-tabs .tab:selected {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #cbd5e1 #cbd5e1 #ffffff #cbd5e1;
+    -fx-focus-color: transparent;
+    -fx-faint-focus-color: transparent;
+}
+
+.security-detail-tabs .tab .tab-label {
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #475569;
+}
+
+.security-detail-tabs .tab:selected .tab-label {
+    -fx-text-fill: #111827;
+}
+
+.security-detail-tabs .tab-content-area {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent #cbd5e1 #cbd5e1 #cbd5e1;
+    -fx-border-radius: 0 0 5 5;
+}
+
+.chart-tab-content {
+    -fx-background-color: #ffffff;
+    -fx-padding: 10 10 10 10;
+    -fx-spacing: 6;
+}
+
+.chart-range-buttons {
+    -fx-spacing: 4;
+}
+
+.chart-range-button {
+    -fx-alignment: CENTER;
+    -fx-background-color: transparent;
+    -fx-background-radius: 4;
+    -fx-border-color: #cbd5e1;
+    -fx-border-radius: 4;
+    -fx-cursor: hand;
+    -fx-font-size: 11px;
+    -fx-font-weight: 700;
+    -fx-min-height: 24px;
+    -fx-min-width: 34px;
+    -fx-padding: 3 8 3 8;
+    -fx-text-fill: #475569;
+}
+
+.chart-range-button:hover {
+    -fx-background-color: #f1f5f9;
+    -fx-text-fill: #0f172a;
+}
+
+.chart-range-button:selected {
+    -fx-background-color: #202936;
+    -fx-border-color: #202936;
+    -fx-text-fill: #ffffff;
 }
 
 .chart {
@@ -192,6 +279,15 @@
 
 .chart-plot-background {
     -fx-background-color: #f8fafc;
+}
+
+.transactions-tab-content {
+    -fx-background-color: #ffffff;
+}
+
+.empty-state-label {
+    -fx-text-fill: #64748b;
+    -fx-font-size: 13px;
 }
 
 .chart-series-line {
