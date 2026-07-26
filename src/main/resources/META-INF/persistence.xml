@@ -5,9 +5,11 @@
              version="3.2">
     <persistence-unit name="portfolio-management" transaction-type="RESOURCE_LOCAL">
         <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+        <class>com.example.portfoliomanagement.persistence.CashAccount</class>
         <class>com.example.portfoliomanagement.persistence.Instrument</class>
         <class>com.example.portfoliomanagement.persistence.InstrumentPrice</class>
         <class>com.example.portfoliomanagement.persistence.InstrumentList</class>
+        <class>com.example.portfoliomanagement.persistence.SecurityAccount</class>
         <properties>
             <property name="jakarta.persistence.jdbc.driver" value="org.h2.Driver" />
             <property name="jakarta.persistence.jdbc.url" value="jdbc:h2:./data/portfolio-management" />

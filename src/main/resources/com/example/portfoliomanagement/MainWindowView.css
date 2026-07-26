@@ -91,11 +91,6 @@
     -fx-font-weight: 700;
 }
 
-.instrument-list-entry {
-    -fx-font-size: 13px;
-    -fx-padding: 8 12 8 24;
-}
-
 .instrument-list-entry:drag-over {
     -fx-background-color: #dbeafe;
     -fx-text-fill: #172554;

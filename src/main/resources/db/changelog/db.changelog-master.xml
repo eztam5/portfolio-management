@@ -93,4 +93,40 @@
             <column name="price_date" />
         </createIndex>
     </changeSet>
+
+    <changeSet id="005-create-cash-accounts" author="codex">
+        <createTable tableName="cash_accounts">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_cash_accounts" />
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="currency" type="VARCHAR(3)">
+                <constraints nullable="false" />
+            </column>
+            <column name="balance" type="DECIMAL(19,4)">
+                <constraints nullable="false" />
+            </column>
+            <column name="note" type="VARCHAR(2000)" />
+        </createTable>
+        <addUniqueConstraint tableName="cash_accounts"
+                             columnNames="name"
+                             constraintName="uk_cash_accounts_name" />
+    </changeSet>
+
+    <changeSet id="006-create-security-accounts" author="codex">
+        <createTable tableName="security_accounts">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_security_accounts" />
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="note" type="VARCHAR(2000)" />
+        </createTable>
+        <addUniqueConstraint tableName="security_accounts"
+                             columnNames="name"
+                             constraintName="uk_security_accounts_name" />
+    </changeSet>
 </databaseChangeLog>

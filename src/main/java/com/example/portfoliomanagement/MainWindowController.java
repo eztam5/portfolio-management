@@ -6,6 +6,10 @@ import com.example.portfoliomanagement.persistence.InstrumentPriceRepository;
 import com.example.portfoliomanagement.persistence.InstrumentRepository;
 import com.example.portfoliomanagement.persistence.InstrumentList;
 import com.example.portfoliomanagement.persistence.InstrumentListRepository;
+import com.example.portfoliomanagement.persistence.CashAccount;
+import com.example.portfoliomanagement.persistence.CashAccountRepository;
+import com.example.portfoliomanagement.persistence.SecurityAccount;
+import com.example.portfoliomanagement.persistence.SecurityAccountRepository;
 import com.example.portfoliomanagement.marketdata.HistoricalPriceProvider;
 import com.example.portfoliomanagement.marketdata.YahooFinanceHistoricalPriceProvider;
 import javafx.beans.property.SimpleStringProperty;
@@ -29,6 +33,7 @@ import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
@@ -64,11 +69,14 @@ public class MainWindowController {
     private final InstrumentListRepository instrumentListRepository = new InstrumentListRepository();
     private final InstrumentRepository instrumentRepository = new InstrumentRepository();
     private final InstrumentPriceRepository instrumentPriceRepository = new InstrumentPriceRepository();
+    private final CashAccountRepository cashAccountRepository = new CashAccountRepository();
+    private final SecurityAccountRepository securityAccountRepository = new SecurityAccountRepository();
     private final HistoricalPriceProvider historicalPriceProvider = new YahooFinanceHistoricalPriceProvider();
     private final ObservableList<InstrumentList> securitiesLists = FXCollections.observableArrayList();
     private final ToggleGroup securitiesMenuGroup = new ToggleGroup();
     private final ToggleGroup chartRangeGroup = new ToggleGroup();
     private InstrumentList activeInstrumentList;
+    private MainView activeView = MainView.SECURITIES;
     private ChartRange activeChartRange = ChartRange.ONE_YEAR;
 
     @FXML
@@ -79,6 +87,12 @@ public class MainWindowController {
 
     @FXML
     private ToggleButton allSecuritiesMenuItem;
+
+    @FXML
+    private ToggleButton securityAccountsMenuItem;
+
+    @FXML
+    private ToggleButton cashAccountsMenuItem;
 
     @FXML
     private VBox instrumentListsMenuItems;
@@ -96,7 +110,22 @@ public class MainWindowController {
     private TableView<SecurityRow> securitiesTable;
 
     @FXML
+    private TableView<SecurityAccountRow> securityAccountsTable;
+
+    @FXML
+    private TableView<CashAccountRow> cashAccountsTable;
+
+    @FXML
+    private VBox chartDetailSection;
+
+    @FXML
+    private VBox accountDetailSection;
+
+    @FXML
     private Label priceChartTitleLabel;
+
+    @FXML
+    private Label accountDetailTitleLabel;
 
     @FXML
     private HBox chartRangeButtons;
@@ -120,20 +149,54 @@ public class MainWindowController {
     private TableColumn<SecurityRow, String> currencyColumn;
 
     @FXML
+    private TableColumn<SecurityAccountRow, String> securityAccountNameColumn;
+
+    @FXML
+    private TableColumn<SecurityAccountRow, String> securityAccountNoteColumn;
+
+    @FXML
+    private TableColumn<CashAccountRow, String> cashAccountNameColumn;
+
+    @FXML
+    private TableColumn<CashAccountRow, String> cashAccountCurrencyColumn;
+
+    @FXML
+    private TableColumn<CashAccountRow, String> cashAccountBalanceColumn;
+
+    @FXML
+    private TableColumn<CashAccountRow, String> cashAccountNoteColumn;
+
+    @FXML
     private void initialize() {
         allSecuritiesMenuItem.setToggleGroup(securitiesMenuGroup);
+        securityAccountsMenuItem.setToggleGroup(securitiesMenuGroup);
+        cashAccountsMenuItem.setToggleGroup(securitiesMenuGroup);
 
         securitiesTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        securityAccountsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        cashAccountsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         nameColumn.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
         symbolColumn.setCellValueFactory(cellData -> cellData.getValue().symbolProperty());
         isinColumn.setCellValueFactory(cellData -> cellData.getValue().isinProperty());
         latestColumn.setCellValueFactory(cellData -> cellData.getValue().latestProperty());
         currencyColumn.setCellValueFactory(cellData -> cellData.getValue().currencyProperty());
+        securityAccountNameColumn.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
+        securityAccountNoteColumn.setCellValueFactory(cellData -> cellData.getValue().noteProperty());
+        cashAccountNameColumn.setCellValueFactory(cellData -> cellData.getValue().nameProperty());
+        cashAccountCurrencyColumn.setCellValueFactory(cellData -> cellData.getValue().currencyProperty());
+        cashAccountBalanceColumn.setCellValueFactory(cellData -> cellData.getValue().balanceProperty());
+        cashAccountNoteColumn.setCellValueFactory(cellData -> cellData.getValue().noteProperty());
 
         securitiesTable.setItems(FXCollections.observableArrayList());
+        securityAccountsTable.setItems(FXCollections.observableArrayList());
+        cashAccountsTable.setItems(FXCollections.observableArrayList());
         securitiesTable.getSelectionModel().selectedItemProperty().addListener(
                 (observable, oldSelection, newSelection) -> updatePriceChart(newSelection));
+        securityAccountsTable.getSelectionModel().selectedItemProperty().addListener(
+                (observable, oldSelection, newSelection) -> updateSecurityAccountDetails(newSelection));
+        cashAccountsTable.getSelectionModel().selectedItemProperty().addListener(
+                (observable, oldSelection, newSelection) -> updateCashAccountDetails(newSelection));
         configurePriceChart();
         configureChartRangeButtons();
         configureInstrumentRows();
@@ -147,10 +210,36 @@ public class MainWindowController {
         activeInstrumentList = null;
         activateMenuItem(allSecuritiesMenuItem);
         showContent(securitiesTable);
+        showDetailSection(chartDetailSection);
         tableTitleLabel.setText("All Securities");
+        activeView = MainView.SECURITIES;
         addInstrumentButton.setDisable(false);
         loadAllInstruments();
         selectFirstSecurity();
+    }
+
+    @FXML
+    private void showSecurityAccounts() {
+        activeInstrumentList = null;
+        activateMenuItem(securityAccountsMenuItem);
+        showContent(securityAccountsTable);
+        showDetailSection(accountDetailSection);
+        tableTitleLabel.setText("Security Accounts");
+        activeView = MainView.SECURITY_ACCOUNTS;
+        addInstrumentButton.setDisable(false);
+        loadSecurityAccounts();
+    }
+
+    @FXML
+    private void showCashAccounts() {
+        activeInstrumentList = null;
+        activateMenuItem(cashAccountsMenuItem);
+        showContent(cashAccountsTable);
+        showDetailSection(accountDetailSection);
+        tableTitleLabel.setText("Cash Accounts");
+        activeView = MainView.CASH_ACCOUNTS;
+        addInstrumentButton.setDisable(false);
+        loadCashAccounts();
     }
 
     @FXML
@@ -182,9 +271,17 @@ public class MainWindowController {
 
     @FXML
     private void promptForInstrument() {
-        createInstrumentDialog()
-                .showAndWait()
-                .ifPresent(this::createInstrument);
+        switch (activeView) {
+            case SECURITIES -> createInstrumentDialog()
+                    .showAndWait()
+                    .ifPresent(this::createInstrument);
+            case SECURITY_ACCOUNTS -> createSecurityAccountDialog()
+                    .showAndWait()
+                    .ifPresent(this::createSecurityAccount);
+            case CASH_ACCOUNTS -> createCashAccountDialog()
+                    .showAndWait()
+                    .ifPresent(this::createCashAccount);
+        }
     }
 
     private void loadInstrumentLists() {
@@ -210,7 +307,9 @@ public class MainWindowController {
         activeInstrumentList = instrumentList;
         activateMenuItem(menuItem);
         showContent(securitiesTable);
+        showDetailSection(chartDetailSection);
         tableTitleLabel.setText(instrumentList.getName());
+        activeView = MainView.SECURITIES;
         addInstrumentButton.setDisable(false);
         loadInstrumentsForList(instrumentList);
         selectFirstSecurity();
@@ -223,6 +322,17 @@ public class MainWindowController {
     private void showContent(Node content) {
         securitiesTable.setVisible(securitiesTable == content);
         securitiesTable.setManaged(securitiesTable == content);
+        securityAccountsTable.setVisible(securityAccountsTable == content);
+        securityAccountsTable.setManaged(securityAccountsTable == content);
+        cashAccountsTable.setVisible(cashAccountsTable == content);
+        cashAccountsTable.setManaged(cashAccountsTable == content);
+    }
+
+    private void showDetailSection(Node visibleSection) {
+        chartDetailSection.setVisible(chartDetailSection == visibleSection);
+        chartDetailSection.setManaged(chartDetailSection == visibleSection);
+        accountDetailSection.setVisible(accountDetailSection == visibleSection);
+        accountDetailSection.setManaged(accountDetailSection == visibleSection);
     }
 
     private void loadAllInstruments() {
@@ -256,6 +366,48 @@ public class MainWindowController {
                                 instrument.getLatest() == null ? "" : instrument.getLatest().toPlainString(),
                                 instrument.getCurrency()))
                         .toList());
+    }
+
+    private void loadSecurityAccounts() {
+        securityAccountsTable.setItems(FXCollections.observableArrayList(
+                securityAccountRepository.findAll().stream()
+                        .map(securityAccount -> new SecurityAccountRow(
+                                securityAccount.getName(),
+                                securityAccount.getNote()))
+                        .toList()));
+        selectFirstSecurityAccount();
+    }
+
+    private void loadCashAccounts() {
+        cashAccountsTable.setItems(FXCollections.observableArrayList(
+                cashAccountRepository.findAll().stream()
+                        .map(cashAccount -> new CashAccountRow(
+                                cashAccount.getName(),
+                                cashAccount.getCurrency(),
+                                cashAccount.getBalance() == null ? "" : cashAccount.getBalance().toPlainString(),
+                                cashAccount.getNote()))
+                        .toList()));
+        selectFirstCashAccount();
+    }
+
+    private void selectFirstSecurityAccount() {
+        if (securityAccountsTable.getItems().isEmpty()) {
+            securityAccountsTable.getSelectionModel().clearSelection();
+            updateSecurityAccountDetails(null);
+            return;
+        }
+
+        securityAccountsTable.getSelectionModel().selectFirst();
+    }
+
+    private void selectFirstCashAccount() {
+        if (cashAccountsTable.getItems().isEmpty()) {
+            cashAccountsTable.getSelectionModel().clearSelection();
+            updateCashAccountDetails(null);
+            return;
+        }
+
+        cashAccountsTable.getSelectionModel().selectFirst();
     }
 
     private Dialog<InstrumentInput> createInstrumentDialog() {
@@ -297,6 +449,70 @@ public class MainWindowController {
         return dialog;
     }
 
+    private Dialog<SecurityAccountInput> createSecurityAccountDialog() {
+        Dialog<SecurityAccountInput> dialog = new Dialog<>();
+        dialog.setTitle("Add Security Account");
+        dialog.setHeaderText("New security account");
+
+        TextField nameField = new TextField();
+        TextArea noteField = new TextArea();
+        noteField.setPrefRowCount(4);
+
+        GridPane form = new GridPane();
+        form.setHgap(10);
+        form.setVgap(10);
+        form.setPadding(new Insets(10, 0, 0, 0));
+        form.addRow(0, new Label("Name:"), nameField);
+        form.addRow(1, new Label("Note:"), noteField);
+
+        dialog.getDialogPane().setContent(form);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType != ButtonType.OK) {
+                return null;
+            }
+            return new SecurityAccountInput(
+                    nameField.getText().trim(),
+                    noteField.getText().trim());
+        });
+        return dialog;
+    }
+
+    private Dialog<CashAccountInput> createCashAccountDialog() {
+        Dialog<CashAccountInput> dialog = new Dialog<>();
+        dialog.setTitle("Add Cash Account");
+        dialog.setHeaderText("New cash account");
+
+        TextField nameField = new TextField();
+        TextField currencyField = new TextField();
+        TextField balanceField = new TextField("0");
+        TextArea noteField = new TextArea();
+        noteField.setPrefRowCount(4);
+
+        GridPane form = new GridPane();
+        form.setHgap(10);
+        form.setVgap(10);
+        form.setPadding(new Insets(10, 0, 0, 0));
+        form.addRow(0, new Label("Name:"), nameField);
+        form.addRow(1, new Label("Currency:"), currencyField);
+        form.addRow(2, new Label("Balance:"), balanceField);
+        form.addRow(3, new Label("Note:"), noteField);
+
+        dialog.getDialogPane().setContent(form);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType != ButtonType.OK) {
+                return null;
+            }
+            return new CashAccountInput(
+                    nameField.getText().trim(),
+                    currencyField.getText().trim(),
+                    balanceField.getText().trim(),
+                    noteField.getText().trim());
+        });
+        return dialog;
+    }
+
     private void createInstrument(InstrumentInput input) {
         if (input.name().isEmpty()) {
             showInstrumentSaveError("The instrument name is required.");
@@ -319,6 +535,60 @@ public class MainWindowController {
             showInstrumentSaveError("Latest must be a valid number.");
         } catch (RuntimeException exception) {
             showInstrumentSaveError("Check that the ISIN is unique and try again.");
+        }
+    }
+
+    private void createSecurityAccount(SecurityAccountInput input) {
+        if (input.name().isEmpty()) {
+            showAccountSaveError("The security account name is required.");
+            return;
+        }
+
+        try {
+            SecurityAccount securityAccount = securityAccountRepository.save(
+                    input.name(),
+                    emptyToNull(input.note()));
+            SecurityAccountRow accountRow = new SecurityAccountRow(
+                    securityAccount.getName(),
+                    securityAccount.getNote());
+            securityAccountsTable.getItems().add(accountRow);
+            securityAccountsTable.getSelectionModel().select(accountRow);
+        } catch (RuntimeException exception) {
+            showAccountSaveError("Check that the security account name is unique and try again.");
+        }
+    }
+
+    private void createCashAccount(CashAccountInput input) {
+        if (input.name().isEmpty()) {
+            showAccountSaveError("The cash account name is required.");
+            return;
+        }
+        if (input.currency().isEmpty()) {
+            showAccountSaveError("The cash account currency is required.");
+            return;
+        }
+        if (input.currency().length() != 3) {
+            showAccountSaveError("Currency must be a 3-letter currency code.");
+            return;
+        }
+
+        try {
+            CashAccount cashAccount = cashAccountRepository.save(
+                    input.name(),
+                    input.currency().toUpperCase(),
+                    parseRequiredDecimal(input.balance()),
+                    emptyToNull(input.note()));
+            CashAccountRow accountRow = new CashAccountRow(
+                    cashAccount.getName(),
+                    cashAccount.getCurrency(),
+                    cashAccount.getBalance().toPlainString(),
+                    cashAccount.getNote());
+            cashAccountsTable.getItems().add(accountRow);
+            cashAccountsTable.getSelectionModel().select(accountRow);
+        } catch (NumberFormatException exception) {
+            showAccountSaveError("Balance must be a valid number.");
+        } catch (RuntimeException exception) {
+            showAccountSaveError("Check that the cash account name is unique and try again.");
         }
     }
 
@@ -348,6 +618,13 @@ public class MainWindowController {
         return new BigDecimal(value);
     }
 
+    private BigDecimal parseRequiredDecimal(String value) {
+        if (value.isEmpty()) {
+            throw new NumberFormatException("Decimal value is required.");
+        }
+        return new BigDecimal(value);
+    }
+
     private String emptyToNull(String value) {
         return value.isEmpty() ? null : value;
     }
@@ -358,6 +635,34 @@ public class MainWindowController {
         alert.setHeaderText("The instrument was not saved.");
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    private void showAccountSaveError(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Could Not Add Account");
+        alert.setHeaderText("The account was not saved.");
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+    private void updateSecurityAccountDetails(SecurityAccountRow accountRow) {
+        if (activeView != MainView.SECURITY_ACCOUNTS) {
+            return;
+        }
+
+        accountDetailTitleLabel.setText(accountRow == null
+                ? "No account selected"
+                : accountRow.nameProperty().get());
+    }
+
+    private void updateCashAccountDetails(CashAccountRow accountRow) {
+        if (activeView != MainView.CASH_ACCOUNTS) {
+            return;
+        }
+
+        accountDetailTitleLabel.setText(accountRow == null
+                ? "No account selected"
+                : accountRow.nameProperty().get());
     }
 
     private void configureInstrumentRows() {
@@ -672,6 +977,66 @@ public class MainWindowController {
     }
 
     private record InstrumentInput(String name, String symbol, String isin, String latest, String currency) {
+    }
+
+    private record SecurityAccountInput(String name, String note) {
+    }
+
+    private record CashAccountInput(String name, String currency, String balance, String note) {
+    }
+
+    private enum MainView {
+        SECURITIES,
+        SECURITY_ACCOUNTS,
+        CASH_ACCOUNTS
+    }
+
+    public static class SecurityAccountRow {
+        private final StringProperty name = new SimpleStringProperty();
+        private final StringProperty note = new SimpleStringProperty();
+
+        public SecurityAccountRow(String name, String note) {
+            this.name.set(name);
+            this.note.set(note);
+        }
+
+        public StringProperty nameProperty() {
+            return name;
+        }
+
+        public StringProperty noteProperty() {
+            return note;
+        }
+    }
+
+    public static class CashAccountRow {
+        private final StringProperty name = new SimpleStringProperty();
+        private final StringProperty currency = new SimpleStringProperty();
+        private final StringProperty balance = new SimpleStringProperty();
+        private final StringProperty note = new SimpleStringProperty();
+
+        public CashAccountRow(String name, String currency, String balance, String note) {
+            this.name.set(name);
+            this.currency.set(currency);
+            this.balance.set(balance);
+            this.note.set(note);
+        }
+
+        public StringProperty nameProperty() {
+            return name;
+        }
+
+        public StringProperty currencyProperty() {
+            return currency;
+        }
+
+        public StringProperty balanceProperty() {
+            return balance;
+        }
+
+        public StringProperty noteProperty() {
+            return note;
+        }
     }
 
     public static class SecurityRow {
