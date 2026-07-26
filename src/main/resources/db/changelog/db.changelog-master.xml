@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="001-create-instruments" author="codex">
+        <createTable tableName="instruments">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_instruments" />
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+            <column name="symbol" type="VARCHAR(64)" />
+            <column name="isin" type="VARCHAR(12)" />
+            <column name="latest" type="DECIMAL(19,4)" />
+            <column name="currency" type="VARCHAR(3)" />
+        </createTable>
+        <addUniqueConstraint tableName="instruments"
+                             columnNames="isin"
+                             constraintName="uk_instruments_isin" />
+    </changeSet>
+
+    <changeSet id="002-create-instrument-lists" author="codex">
+        <createTable tableName="instrument_lists">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="pk_instrument_lists" />
+            </column>
+            <column name="name" type="VARCHAR(255)">
+                <constraints nullable="false" />
+            </column>
+        </createTable>
+        <addUniqueConstraint tableName="instrument_lists"
+                             columnNames="name"
+                             constraintName="uk_instrument_lists_name" />
+    </changeSet>
+
+    <changeSet id="003-create-instrument-list-instruments" author="codex">
+        <createTable tableName="instrument_list_instruments">
+            <column name="instrument_list_id" type="BIGINT">
+                <constraints nullable="false" />
+            </column>
+            <column name="instrument_id" type="BIGINT">
+                <constraints nullable="false" />
+            </column>
+        </createTable>
+        <addPrimaryKey tableName="instrument_list_instruments"
+                       columnNames="instrument_list_id, instrument_id"
+                       constraintName="pk_instrument_list_instruments" />
+        <addForeignKeyConstraint baseTableName="instrument_list_instruments"
+                                 baseColumnNames="instrument_list_id"
+                                 constraintName="fk_list_instruments_list"
+                                 referencedTableName="instrument_lists"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE" />
+        <addForeignKeyConstraint baseTableName="instrument_list_instruments"
+                                 baseColumnNames="instrument_id"
+                                 constraintName="fk_list_instruments_instrument"
+                                 referencedTableName="instruments"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE" />
+    </changeSet>
+
+    <changeSet id="004-create-instrument-prices" author="codex">
+        <createTable tableName="instrument_prices">
+            <column name="instrument_id" type="BIGINT">
+                <constraints nullable="false" />
+            </column>
+            <column name="price_date" type="DATE">
+                <constraints nullable="false" />
+            </column>
+            <column name="open_price" type="DECIMAL(19,6)" />
+            <column name="high_price" type="DECIMAL(19,6)" />
+            <column name="low_price" type="DECIMAL(19,6)" />
+            <column name="close_price" type="DECIMAL(19,6)">
+                <constraints nullable="false" />
+            </column>
+            <column name="adjusted_close_price" type="DECIMAL(19,6)" />
+            <column name="volume" type="BIGINT" />
+            <column name="currency" type="VARCHAR(3)" />
+        </createTable>
+        <addPrimaryKey tableName="instrument_prices"
+                       columnNames="instrument_id, price_date"
+                       constraintName="pk_instrument_prices" />
+        <addForeignKeyConstraint baseTableName="instrument_prices"
+                                 baseColumnNames="instrument_id"
+                                 constraintName="fk_instrument_prices_instrument"
+                                 referencedTableName="instruments"
+                                 referencedColumnNames="id"
+                                 onDelete="CASCADE" />
+        <createIndex tableName="instrument_prices" indexName="idx_instrument_prices_date">
+            <column name="price_date" />
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

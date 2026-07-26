@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.*?>
+<?import javafx.scene.chart.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<SplitPane fx:id="mainSplitPane"
+           dividerPositions="0.22"
+           maxHeight="Infinity"
+           maxWidth="Infinity"
+           minHeight="420.0"
+           minWidth="760.0"
+           prefHeight="640.0"
+           prefWidth="1040.0"
+           stylesheets="@MainWindowView.css"
+           xmlns="http://javafx.com/javafx/17.0.12"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.example.portfoliomanagement.MainWindowController">
+    <items>
+        <VBox fx:id="menuBar" minWidth="160.0" prefWidth="220.0" styleClass="side-menu">
+            <children>
+                <Label styleClass="app-title" text="Portfolio" />
+                <VBox styleClass="menu-section">
+                    <children>
+                        <HBox alignment="CENTER_LEFT" styleClass="menu-section-header-row">
+                            <children>
+                                <Label maxWidth="Infinity" styleClass="menu-section-header" text="Securities" HBox.hgrow="ALWAYS" />
+                                <Button fx:id="addSecuritiesListButton"
+                                        mnemonicParsing="false"
+                                        onAction="#promptForSecuritiesListName"
+                                        styleClass="section-add-button"
+                                        text="+" />
+                            </children>
+                        </HBox>
+                        <ToggleButton fx:id="allSecuritiesMenuItem"
+                                      maxWidth="Infinity"
+                                      mnemonicParsing="false"
+                                      onAction="#showAllSecurities"
+                                      styleClass="menu-entry"
+                                      text="All Securities" />
+                        <VBox fx:id="instrumentListsMenuItems" styleClass="menu-subsection" />
+                    </children>
+                </VBox>
+            </children>
+        </VBox>
+
+        <VBox minWidth="360.0" styleClass="content-pane" VBox.vgrow="ALWAYS">
+            <children>
+                <SplitPane fx:id="tableChartSplitPane"
+                           dividerPositions="0.68"
+                           orientation="VERTICAL"
+                           styleClass="chart-split-pane"
+                           VBox.vgrow="ALWAYS">
+                    <items>
+                        <VBox minHeight="220.0" styleClass="table-section">
+                            <children>
+                                <HBox alignment="CENTER_LEFT" styleClass="table-toolbar">
+                                    <children>
+                                        <Label fx:id="tableTitleLabel"
+                                               maxWidth="Infinity"
+                                               styleClass="table-title"
+                                               text="All Securities"
+                                               HBox.hgrow="ALWAYS" />
+                                        <Button fx:id="addInstrumentButton"
+                                                mnemonicParsing="false"
+                                                onAction="#promptForInstrument"
+                                                styleClass="table-add-button"
+                                                text="+" />
+                                    </children>
+                                </HBox>
+                                <StackPane fx:id="contentArea" VBox.vgrow="ALWAYS">
+                                    <children>
+                                        <TableView fx:id="securitiesTable">
+                                            <columns>
+                                                <TableColumn fx:id="nameColumn" minWidth="160.0" prefWidth="240.0" text="Name" />
+                                                <TableColumn fx:id="symbolColumn" minWidth="90.0" prefWidth="120.0" text="Symbol" />
+                                                <TableColumn fx:id="isinColumn" minWidth="130.0" prefWidth="160.0" text="ISIN" />
+                                                <TableColumn fx:id="latestColumn" minWidth="90.0" prefWidth="120.0" text="Latest" />
+                                                <TableColumn fx:id="currencyColumn" minWidth="90.0" prefWidth="120.0" text="currency" />
+                                            </columns>
+                                            <placeholder>
+                                                <Label text="No securities available." />
+                                            </placeholder>
+                                        </TableView>
+                                    </children>
+                                </StackPane>
+                            </children>
+                        </VBox>
+                        <VBox minHeight="150.0" styleClass="chart-section">
+                            <children>
+                                <Label fx:id="priceChartTitleLabel"
+                                       styleClass="chart-title-label"
+                                       text="Price Chart" />
+                                <LineChart fx:id="priceChart"
+                                           animated="false"
+                                           createSymbols="false"
+                                           legendVisible="false"
+                                           VBox.vgrow="ALWAYS">
+                                    <xAxis>
+                                        <CategoryAxis side="BOTTOM" />
+                                    </xAxis>
+                                    <yAxis>
+                                        <NumberAxis side="LEFT" />
+                                    </yAxis>
+                                    <padding>
+                                        <Insets bottom="0.0" left="0.0" right="0.0" top="4.0" />
+                                    </padding>
+                                </LineChart>
+                            </children>
+                        </VBox>
+                    </items>
+                </SplitPane>
+            </children>
+        </VBox>
+    </items>
+</SplitPane>
