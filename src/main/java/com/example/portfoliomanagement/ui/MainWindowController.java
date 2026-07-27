@@ -1,5 +1,6 @@
-package com.example.portfoliomanagement;
+package com.example.portfoliomanagement.ui;
 
+import com.example.portfoliomanagement.calculation.CashBalanceCalculator;
 import com.example.portfoliomanagement.persistence.Instrument;
 import com.example.portfoliomanagement.persistence.InstrumentPrice;
 import com.example.portfoliomanagement.persistence.InstrumentPriceRepository;
@@ -13,8 +14,7 @@ import com.example.portfoliomanagement.persistence.CashAccountRepository;
 import com.example.portfoliomanagement.persistence.SecurityAccount;
 import com.example.portfoliomanagement.persistence.SecurityAccountRepository;
 import com.example.portfoliomanagement.persistence.TransactionType;
-import com.example.portfoliomanagement.marketdata.HistoricalPriceProvider;
-import com.example.portfoliomanagement.marketdata.YahooFinanceHistoricalPriceProvider;
+import com.example.portfoliomanagement.service.MarketDataService;
 import com.example.portfoliomanagement.service.TransactionService;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -79,7 +79,8 @@ public class MainWindowController {
     private final CashAccountRepository cashAccountRepository = new CashAccountRepository();
     private final SecurityAccountRepository securityAccountRepository = new SecurityAccountRepository();
     private final TransactionService transactionService = new TransactionService();
-    private final HistoricalPriceProvider historicalPriceProvider = new YahooFinanceHistoricalPriceProvider();
+    private final MarketDataService marketDataService = new MarketDataService();
+    private final CashBalanceCalculator cashBalanceCalculator = new CashBalanceCalculator();
     private final ObservableList<InstrumentList> securitiesLists = FXCollections.observableArrayList();
     private final ToggleGroup securitiesMenuGroup = new ToggleGroup();
     private final ToggleGroup chartRangeGroup = new ToggleGroup();
@@ -510,7 +511,9 @@ public class MainWindowController {
                                 cashAccount.getId(),
                                 cashAccount.getName(),
                                 cashAccount.getCurrency(),
-                                decimalToString(portfolioTransactionRepository.calculateCashAccountBalance(cashAccount.getId())),
+                                decimalToString(cashBalanceCalculator.calculate(
+                                        cashAccount.getId(),
+                                        portfolioTransactionRepository.findByCashAccountId(cashAccount.getId()))),
                                 cashAccount.getNote()))
                         .toList()));
         selectFirstCashAccount();
@@ -714,7 +717,9 @@ public class MainWindowController {
                     cashAccount.getId(),
                     cashAccount.getName(),
                     cashAccount.getCurrency(),
-                    decimalToString(portfolioTransactionRepository.calculateCashAccountBalance(cashAccount.getId())),
+                    decimalToString(cashBalanceCalculator.calculate(
+                            cashAccount.getId(),
+                            portfolioTransactionRepository.findByCashAccountId(cashAccount.getId()))),
                     cashAccount.getNote());
             cashAccountsTable.getItems().add(accountRow);
             cashAccountsTable.getSelectionModel().select(accountRow);
@@ -1401,7 +1406,7 @@ public class MainWindowController {
             try {
                 instrumentPriceRepository.saveAll(
                         instrument.getId(),
-                        historicalPriceProvider.loadDailyPrices(instrument.getSymbol(), from, to));
+                        marketDataService.loadDailyPrices(instrument.getSymbol(), from, to));
                 Platform.runLater(() -> {
                     SecurityRow selectedSecurity = securitiesTable.getSelectionModel().getSelectedItem();
                     if (selectedSecurity != null && selectedSecurity.id().equals(instrument.getId())) {

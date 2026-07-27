@@ -17,7 +17,7 @@ module com.example.portfoliomanagement {
     requires org.kordamp.bootstrapfx.core;
     requires com.dlsc.fxmlkit;
 
-    opens com.example.portfoliomanagement to javafx.fxml;
+    opens com.example.portfoliomanagement.ui to javafx.fxml;
     opens com.example.portfoliomanagement.persistence to org.hibernate.orm.core;
     exports com.example.portfoliomanagement;
 }

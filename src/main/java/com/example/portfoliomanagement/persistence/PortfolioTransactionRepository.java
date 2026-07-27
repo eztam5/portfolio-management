@@ -2,7 +2,6 @@ package com.example.portfoliomanagement.persistence;
 
 import jakarta.persistence.EntityManager;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 public class PortfolioTransactionRepository {
@@ -41,32 +40,6 @@ public class PortfolioTransactionRepository {
         } finally {
             entityManager.close();
         }
-    }
-
-    public BigDecimal calculateCashAccountBalance(Long cashAccountId) {
-        return findByCashAccountId(cashAccountId).stream()
-                .map(transaction -> cashEffect(cashAccountId, transaction))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    private BigDecimal cashEffect(Long cashAccountId, PortfolioTransaction transaction) {
-        BigDecimal amount = transaction.getAmount() == null ? BigDecimal.ZERO : transaction.getAmount();
-        BigDecimal fees = transaction.getFees() == null ? BigDecimal.ZERO : transaction.getFees();
-        BigDecimal taxes = transaction.getTaxes() == null ? BigDecimal.ZERO : transaction.getTaxes();
-
-        return switch (transaction.getType()) {
-            case DEPOSIT -> amount;
-            case WITHDRAWAL -> amount.negate();
-            case CASH_TRANSFER -> {
-                if (transaction.getCashAccount() != null && cashAccountId.equals(transaction.getCashAccount().getId())) {
-                    yield amount.negate();
-                }
-                yield amount;
-            }
-            case BUY -> amount.add(fees).add(taxes).negate();
-            case SELL -> amount.subtract(fees).subtract(taxes);
-            case DIVIDEND -> amount.subtract(taxes);
-        };
     }
 
     public List<PortfolioTransaction> findBySecurityAccountId(Long securityAccountId) {
