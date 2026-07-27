@@ -5,6 +5,24 @@ import jakarta.persistence.EntityManager;
 import java.util.List;
 
 public class PortfolioTransactionRepository {
+    public List<PortfolioTransaction> findAll() {
+        EntityManager entityManager = PersistenceManager.createEntityManager();
+
+        try {
+            return entityManager.createQuery("""
+                            select transaction
+                            from PortfolioTransaction transaction
+                            left join fetch transaction.instrument
+                            left join fetch transaction.cashAccount
+                            left join fetch transaction.targetCashAccount
+                            order by transaction.transactionDate, transaction.id
+                            """, PortfolioTransaction.class)
+                    .getResultList();
+        } finally {
+            entityManager.close();
+        }
+    }
+
     public List<PortfolioTransaction> findByInstrumentId(Long instrumentId) {
         EntityManager entityManager = PersistenceManager.createEntityManager();
 

@@ -7,6 +7,22 @@ import jakarta.persistence.EntityTransaction;
 import java.util.List;
 
 public class InstrumentPriceRepository {
+    public List<InstrumentPrice> findAll() {
+        EntityManager entityManager = PersistenceManager.createEntityManager();
+
+        try {
+            return entityManager.createQuery("""
+                            select price
+                            from InstrumentPrice price
+                            join fetch price.instrument
+                            order by price.id.instrumentId, price.id.priceDate
+                            """, InstrumentPrice.class)
+                    .getResultList();
+        } finally {
+            entityManager.close();
+        }
+    }
+
     public List<InstrumentPrice> findByInstrumentId(Long instrumentId) {
         EntityManager entityManager = PersistenceManager.createEntityManager();
 

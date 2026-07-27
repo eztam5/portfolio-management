@@ -1,6 +1,8 @@
 package com.example.portfoliomanagement.ui;
 
 import com.example.portfoliomanagement.calculation.CashBalanceCalculator;
+import com.example.portfoliomanagement.calculation.PerformancePoint;
+import com.example.portfoliomanagement.calculation.PortfolioPerformanceCalculator;
 import com.example.portfoliomanagement.persistence.Instrument;
 import com.example.portfoliomanagement.persistence.InstrumentPrice;
 import com.example.portfoliomanagement.persistence.InstrumentPriceRepository;
@@ -81,6 +83,7 @@ public class MainWindowController {
     private final TransactionService transactionService = new TransactionService();
     private final MarketDataService marketDataService = new MarketDataService();
     private final CashBalanceCalculator cashBalanceCalculator = new CashBalanceCalculator();
+    private final PortfolioPerformanceCalculator portfolioPerformanceCalculator = new PortfolioPerformanceCalculator();
     private final ObservableList<InstrumentList> securitiesLists = FXCollections.observableArrayList();
     private final ToggleGroup securitiesMenuGroup = new ToggleGroup();
     private final ToggleGroup chartRangeGroup = new ToggleGroup();
@@ -104,6 +107,9 @@ public class MainWindowController {
     private ToggleButton cashAccountsMenuItem;
 
     @FXML
+    private ToggleButton performanceMenuItem;
+
+    @FXML
     private VBox instrumentListsMenuItems;
 
     @FXML
@@ -111,6 +117,9 @@ public class MainWindowController {
 
     @FXML
     private SplitPane tableChartSplitPane;
+
+    @FXML
+    private StackPane detailArea;
 
     @FXML
     private Label tableTitleLabel;
@@ -123,6 +132,9 @@ public class MainWindowController {
 
     @FXML
     private TableView<CashAccountRow> cashAccountsTable;
+
+    @FXML
+    private VBox performanceReportPane;
 
     @FXML
     private TableView<SecurityTransactionRow> securityTransactionsTable;
@@ -150,6 +162,9 @@ public class MainWindowController {
 
     @FXML
     private LineChart<Number, Number> priceChart;
+
+    @FXML
+    private LineChart<Number, Number> performanceChart;
 
     @FXML
     private TableColumn<SecurityRow, String> nameColumn;
@@ -264,6 +279,7 @@ public class MainWindowController {
         allSecuritiesMenuItem.setToggleGroup(securitiesMenuGroup);
         securityAccountsMenuItem.setToggleGroup(securitiesMenuGroup);
         cashAccountsMenuItem.setToggleGroup(securitiesMenuGroup);
+        performanceMenuItem.setToggleGroup(securitiesMenuGroup);
 
         securitiesTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
         securityAccountsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
@@ -322,6 +338,7 @@ public class MainWindowController {
         cashAccountsTable.getSelectionModel().selectedItemProperty().addListener(
                 (observable, oldSelection, newSelection) -> updateCashAccountDetails(newSelection));
         configurePriceChart();
+        configurePerformanceChart();
         configureChartRangeButtons();
         configureInstrumentRows();
         configureCashAccountRows();
@@ -368,6 +385,19 @@ public class MainWindowController {
     }
 
     @FXML
+    private void showPerformanceReport() {
+        activeInstrumentList = null;
+        activateMenuItem(performanceMenuItem);
+        showContent(performanceReportPane);
+        showDetailSection(null);
+        tableTitleLabel.setText("Performance");
+        activeView = MainView.PERFORMANCE;
+        addInstrumentButton.setVisible(false);
+        addInstrumentButton.setManaged(false);
+        updatePerformanceReport();
+    }
+
+    @FXML
     private void promptForSecuritiesListName() {
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Add Securities List");
@@ -406,6 +436,8 @@ public class MainWindowController {
             case CASH_ACCOUNTS -> createCashAccountDialog()
                     .showAndWait()
                     .ifPresent(this::createCashAccount);
+            case PERFORMANCE -> {
+            }
         }
     }
 
@@ -451,9 +483,25 @@ public class MainWindowController {
         securityAccountsTable.setManaged(securityAccountsTable == content);
         cashAccountsTable.setVisible(cashAccountsTable == content);
         cashAccountsTable.setManaged(cashAccountsTable == content);
+        performanceReportPane.setVisible(performanceReportPane == content);
+        performanceReportPane.setManaged(performanceReportPane == content);
+
+        boolean reportingView = performanceReportPane == content;
+        addInstrumentButton.setVisible(!reportingView);
+        addInstrumentButton.setManaged(!reportingView);
     }
 
     private void showDetailSection(Node visibleSection) {
+        boolean hasVisibleSection = visibleSection != null;
+        if (hasVisibleSection && !tableChartSplitPane.getItems().contains(detailArea)) {
+            tableChartSplitPane.getItems().add(detailArea);
+            tableChartSplitPane.setDividerPositions(0.68);
+        } else if (!hasVisibleSection) {
+            tableChartSplitPane.getItems().remove(detailArea);
+        }
+
+        detailArea.setVisible(hasVisibleSection);
+        detailArea.setManaged(hasVisibleSection);
         chartDetailSection.setVisible(chartDetailSection == visibleSection);
         chartDetailSection.setManaged(chartDetailSection == visibleSection);
         accountDetailSection.setVisible(accountDetailSection == visibleSection);
@@ -1266,6 +1314,22 @@ public class MainWindowController {
         updateSecurityTransactions(securityRow);
     }
 
+    private void updatePerformanceReport() {
+        performanceChart.getData().clear();
+
+        List<PerformancePoint> points = portfolioPerformanceCalculator.calculate(
+                portfolioTransactionRepository.findAll(),
+                instrumentPriceRepository.findAll());
+        updatePerformanceChartXAxis(points);
+
+        XYChart.Series<Number, Number> series = new XYChart.Series<>();
+        series.setName("Portfolio");
+        points.forEach(point -> series.getData().add(new XYChart.Data<>(
+                point.date().toEpochDay(),
+                point.value())));
+        performanceChart.getData().add(series);
+    }
+
     private void updatePriceChart(SecurityRow securityRow) {
         priceChart.getData().clear();
         priceChartTitleLabel.setText(securityRow == null
@@ -1335,6 +1399,25 @@ public class MainWindowController {
         xAxis.setTickUnit(Math.max(1, (upperBound - lowerBound) / 6));
     }
 
+    private void updatePerformanceChartXAxis(List<PerformancePoint> points) {
+        if (!(performanceChart.getXAxis() instanceof NumberAxis xAxis)) {
+            return;
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate lowerDate = points.isEmpty() ? today.minusDays(1) : points.get(0).date();
+        long lowerBound = lowerDate.toEpochDay();
+        long upperBound = today.toEpochDay();
+        if (lowerBound >= upperBound) {
+            lowerBound = upperBound - 1;
+        }
+
+        xAxis.setAutoRanging(false);
+        xAxis.setLowerBound(lowerBound);
+        xAxis.setUpperBound(upperBound);
+        xAxis.setTickUnit(Math.max(1, (upperBound - lowerBound) / 6));
+    }
+
     private String securityTitle(SecurityRow securityRow) {
         String symbol = securityRow.symbolProperty().get();
         String name = securityRow.nameProperty().get();
@@ -1361,6 +1444,27 @@ public class MainWindowController {
         }
 
         if (priceChart.getYAxis() instanceof NumberAxis yAxis) {
+            yAxis.setForceZeroInRange(false);
+        }
+    }
+
+    private void configurePerformanceChart() {
+        if (performanceChart.getXAxis() instanceof NumberAxis xAxis) {
+            xAxis.setForceZeroInRange(false);
+            xAxis.setTickLabelFormatter(new StringConverter<>() {
+                @Override
+                public String toString(Number value) {
+                    return LocalDate.ofEpochDay(value.longValue()).format(AXIS_DATE_FORMATTER);
+                }
+
+                @Override
+                public Number fromString(String value) {
+                    return 0;
+                }
+            });
+        }
+
+        if (performanceChart.getYAxis() instanceof NumberAxis yAxis) {
             yAxis.setForceZeroInRange(false);
         }
     }
@@ -1563,7 +1667,8 @@ public class MainWindowController {
     private enum MainView {
         SECURITIES,
         SECURITY_ACCOUNTS,
-        CASH_ACCOUNTS
+        CASH_ACCOUNTS,
+        PERFORMANCE
     }
 
     public static class SecurityAccountRow {

@@ -67,6 +67,21 @@
                                       text="Cash Accounts" />
                     </children>
                 </VBox>
+                <VBox styleClass="menu-section">
+                    <children>
+                        <HBox alignment="CENTER_LEFT" styleClass="menu-section-header-row">
+                            <children>
+                                <Label maxWidth="Infinity" styleClass="menu-section-header" text="Reporting" HBox.hgrow="ALWAYS" />
+                            </children>
+                        </HBox>
+                        <ToggleButton fx:id="performanceMenuItem"
+                                      maxWidth="Infinity"
+                                      mnemonicParsing="false"
+                                      onAction="#showPerformanceReport"
+                                      styleClass="menu-entry"
+                                      text="Performance" />
+                    </children>
+                </VBox>
             </children>
         </VBox>
 
@@ -128,11 +143,33 @@
                                                 <Label text="No cash accounts available." />
                                             </placeholder>
                                         </TableView>
+                                        <VBox fx:id="performanceReportPane"
+                                              styleClass="performance-report-pane"
+                                              visible="false"
+                                              managed="false">
+                                            <children>
+                                                <LineChart fx:id="performanceChart"
+                                                           animated="false"
+                                                           createSymbols="false"
+                                                           legendVisible="true"
+                                                           VBox.vgrow="ALWAYS">
+                                                    <xAxis>
+                                                        <NumberAxis side="BOTTOM" />
+                                                    </xAxis>
+                                                    <yAxis>
+                                                        <NumberAxis side="LEFT" />
+                                                    </yAxis>
+                                                    <padding>
+                                                        <Insets bottom="0.0" left="0.0" right="0.0" top="4.0" />
+                                                    </padding>
+                                                </LineChart>
+                                            </children>
+                                        </VBox>
                                     </children>
                                 </StackPane>
                             </children>
                         </VBox>
-                        <StackPane minHeight="150.0">
+                        <StackPane fx:id="detailArea" minHeight="150.0">
                             <children>
                                 <VBox fx:id="chartDetailSection" styleClass="chart-section">
                                     <children>
