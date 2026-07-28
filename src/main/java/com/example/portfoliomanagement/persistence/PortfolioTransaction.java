@@ -133,6 +133,10 @@ public class PortfolioTransaction {
         return targetCashAccount;
     }
 
+    public SecurityAccount getSecurityAccount() {
+        return securityAccount;
+    }
+
     public Instrument getInstrument() {
         return instrument;
     }
@@ -159,5 +163,38 @@ public class PortfolioTransaction {
 
     public String getNote() {
         return note;
+    }
+
+    public void update(
+            TransactionType type,
+            LocalDate transactionDate,
+            CashAccount cashAccount,
+            CashAccount targetCashAccount,
+            SecurityAccount securityAccount,
+            Instrument instrument,
+            BigDecimal shares,
+            BigDecimal amount,
+            String currency,
+            BigDecimal grossAmount,
+            String grossAmountCurrency,
+            BigDecimal exchangeRate,
+            BigDecimal fees,
+            BigDecimal taxes,
+            String note) {
+        this.type = type;
+        this.transactionDate = transactionDate;
+        this.cashAccount = cashAccount;
+        this.targetCashAccount = targetCashAccount;
+        this.securityAccount = securityAccount;
+        this.instrument = instrument;
+        this.shares = shares;
+        this.amount = amount;
+        this.currency = currency;
+        this.grossAmount = grossAmount;
+        this.grossAmountCurrency = grossAmountCurrency;
+        this.exchangeRate = exchangeRate;
+        this.fees = fees;
+        this.taxes = taxes;
+        this.note = note;
     }
 }

@@ -163,6 +163,61 @@ public class TransactionService {
                 note));
     }
 
+    public void update(
+            Long transactionId,
+            TransactionType type,
+            LocalDate transactionDate,
+            Long cashAccountId,
+            Long targetCashAccountId,
+            Long securityAccountId,
+            Long instrumentId,
+            BigDecimal shares,
+            BigDecimal amount,
+            String currency,
+            BigDecimal fees,
+            BigDecimal taxes,
+            String note) {
+        EntityManager entityManager = PersistenceManager.createEntityManager();
+        EntityTransaction transaction = entityManager.getTransaction();
+
+        try {
+            transaction.begin();
+            PortfolioTransaction portfolioTransaction = entityManager.find(PortfolioTransaction.class, transactionId);
+            if (portfolioTransaction == null) {
+                throw new IllegalArgumentException("Transaction does not exist: " + transactionId);
+            }
+
+            BigDecimal grossAmount = type == TransactionType.DIVIDEND || type == TransactionType.BUY || type == TransactionType.SELL
+                    ? amount
+                    : null;
+            String grossAmountCurrency = grossAmount == null ? null : currency;
+            portfolioTransaction.update(
+                    type,
+                    transactionDate,
+                    reference(entityManager, CashAccount.class, cashAccountId),
+                    reference(entityManager, CashAccount.class, targetCashAccountId),
+                    reference(entityManager, SecurityAccount.class, securityAccountId),
+                    reference(entityManager, Instrument.class, instrumentId),
+                    shares,
+                    amount,
+                    currency,
+                    grossAmount,
+                    grossAmountCurrency,
+                    null,
+                    fees,
+                    taxes,
+                    note);
+            transaction.commit();
+        } catch (RuntimeException exception) {
+            if (transaction.isActive()) {
+                transaction.rollback();
+            }
+            throw exception;
+        } finally {
+            entityManager.close();
+        }
+    }
+
     private PortfolioTransaction securityTransaction(
             TransactionType type,
             Long instrumentId,
